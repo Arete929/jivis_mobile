@@ -1,6 +1,6 @@
-/* 지비스 모바일 서비스워커 | @version 2.3.0
+/* 지비스 모바일 서비스워커 | @version 2.4.0
    화면(index.html · jd/index.html)은 서버 먼저, 안 되면 담아 둔 것. 나머지(아이콘·jd/js)는 담아 둔 것 먼저. 새 판이 나오면 스스로 바뀐다. */
-var CACHE = 'jivis-v2.3.0';
+var CACHE = 'jivis-v2.4.0';
 var ROOT = new URL('./', self.location).pathname;
 var ASSETS = ['./', './index.html', './manifest.webmanifest', './icon-512.png', './icon-192.png', './logo-256.png', './apple-touch-icon.png'];
 self.addEventListener('install', function (e) {
