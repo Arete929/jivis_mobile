@@ -1,6 +1,6 @@
-/* 지비스 모바일 서비스워커 | @version 1.0.0
+/* 지비스 모바일 서비스워커 | @version 1.0.1
    혜원이지 모바일과 같은 방식 — 화면(index.html)은 서버 먼저, 안 되면 담아 둔 것. 새 판이 나오면 스스로 바뀐다. */
-var CACHE = 'jivis-v1.0.0';
+var CACHE = 'jivis-v1.0.1';
 var ASSETS = ['./', './index.html', './manifest.webmanifest', './icon-512.png', './icon-192.png', './logo-256.png', './apple-touch-icon.png'];
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) {

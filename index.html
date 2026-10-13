@@ -87,8 +87,8 @@ button,input{font:inherit;color:inherit}
 .smsedit{all:unset;box-sizing:border-box;flex:1;min-width:0;display:flex;gap:10px;padding:10px 12px;cursor:pointer;align-items:center}
 .smsedit .att-tags{margin:0 0 0 auto}
 .callbtns{display:flex;gap:6px;padding:0 10px 0 0;align-items:center}
-.callbtn{display:inline-flex;align-items:center;gap:4px;padding:8px 11px;border-radius:999px;background:var(--ok);color:#fff;font-weight:800;font-size:12px;text-decoration:none}
-.callbtn .li{width:15px;height:15px;stroke:#fff}
+.callbtn{display:inline-flex;align-items:center;gap:4px;padding:8px 11px;border-radius:999px;background:var(--ok);color:var(--on);font-weight:800;font-size:12px;text-decoration:none}
+.callbtn .li{width:15px;height:15px;stroke:var(--on)}
 .callnow{display:inline-flex;align-items:center;gap:6px;margin-top:8px;text-decoration:none;color:var(--ok)}
 .btn .li{width:18px;height:18px;display:inline-block;vertical-align:-4px;margin-right:4px}
 .btn.sm .li{margin-right:0}
@@ -104,7 +104,7 @@ button,input{font:inherit;color:inherit}
 .smsrow{width:100%;text-align:left;cursor:pointer;color:inherit;font:inherit;align-items:center}
 .smsrow .att-tags{margin:0;margin-left:auto}
 textarea.fld{resize:vertical;line-height:1.55;font-size:15px}
-.btn.send{background:var(--ok);color:#fff;flex:1}
+.btn.send{background:var(--ok);color:var(--on);flex:1}
 /* 급식 여중·여고 · 출결 (v1.6.0) */
 .meal .sblk{margin-top:8px}.meal .sblk:first-of-type{margin-top:4px}
 .meal .sch{display:flex;align-items:center;gap:8px;margin-bottom:5px}
@@ -345,7 +345,7 @@ table.tt td.today{background:color-mix(in srgb,var(--accent) 9%,var(--card))}
 .nmqask{margin-top:10px;font-weight:800;font-size:15px}
 .nmopts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
 .nmopt{padding:14px 6px;border-radius:12px;border:1.5px solid var(--line);background:var(--card);color:var(--fg);font:inherit;font-weight:800;font-size:16px;cursor:pointer}
-.nmopt.right{background:var(--ok);color:#fff;border-color:var(--ok)}.nmopt.wrong{background:var(--warn);color:#fff;border-color:var(--warn)}.nmopt.dim{opacity:.45}
+.nmopt.right{background:var(--ok);color:var(--on);border-color:var(--ok)}.nmopt.wrong{background:var(--warn);color:var(--on);border-color:var(--warn)}.nmopt.dim{opacity:.45}
 .nmres{padding:10px 12px;border-radius:12px;margin:6px 0 10px;font-weight:800;font-size:15px;text-align:center}
 .nmres.ok{background:color-mix(in srgb,var(--ok) 16%,var(--bg));color:var(--ok)}.nmres.bad{background:color-mix(in srgb,var(--warn) 16%,var(--bg));color:var(--warn)}
 .nmtyped{font-size:18px;text-align:center}.nmtyped.ok{border-color:var(--ok)}.nmtyped.bad{border-color:var(--warn)}
@@ -370,15 +370,16 @@ table.tt td.today{background:color-mix(in srgb,var(--accent) 9%,var(--card))}
 
 <script>
 /* ═══════════════════════════════════════════════════════
-   지비스 모바일 | @version 1.0.0
-   수정요약: v1.0.0 첫 판 — 이름 외우기(연습 카드·선택형·서답형·짝맞추기, 한 바퀴·틀린 학생만 복습).
+   지비스 모바일 | @version 1.0.1
+   수정요약: v1.0.1 점검 반영 — 어두운 화면 선택형 정답·오답 글자 대비(1.9:1→9.7:1), 짝맞추기 사진 단추에 이름 붙임.
+   v1.0.0 첫 판 — 이름 외우기(연습 카드·선택형·서답형·짝맞추기, 한 바퀴·틀린 학생만 복습).
 
    ★ 지비스(PC) 선생님 전용 폰 앱. 혜원이지 모바일과 주소·설치·자료가 따로다.
    ★ 서버에 아무것도 올리지 않는다 — 지비스(PC)가 만든 «폰용 사진 묶음» 파일을 이 폰에 불러와 쓴다.
      사진은 이 폰 안(IndexedDB)에만 있다.
    ★ 드롭다운(select)은 쓰지 않는다 — 칩·단추로 고른다.
    ═══════════════════════════════════════════════════════ */
-var VERSION = '1.0.0';
+var VERSION = '1.0.1';
 var VIEW = 'nm';
 var $ = function (id) { return document.getElementById(id); };
 var APP = $('app');
@@ -605,9 +606,9 @@ function nmMatchHtml(pool, pm) {
   if (NM.rd.finished) return '<div class="nmq">' + nmResultHtml(pm) + '</div>';
   var p = NM.pairs, all = Object.keys(p.done).length === p.L.length;
   var h = '<div class="nmq"><div class="nmscore">' + (NM.rd.retry ? '복습 · ' : '') + '남은 학생 <b>' + (NM.rd.queue.length + p.L.length - Object.keys(p.done).length) + '</b>명 · 틀린 횟수 <b>' + NM.fails + '</b></div><div class="nmpair"><div class="nmcol">'
-    + p.L.map(function (x, i) { return '<button type="button" class="nmpl' + (p.done[i] ? ' done' : '') + (NM.selL === i ? ' sel' : '') + '" data-nm="L" data-v="' + i + '"' + (p.done[i] ? ' disabled' : '') + '>' + nmFront(x, pm, 's') + '</button>'; }).join('')
+    + p.L.map(function (x, i) { return '<button type="button" class="nmpl' + (p.done[i] ? ' done' : '') + (NM.selL === i ? ' sel' : '') + '" data-nm="L" data-v="' + i + '" aria-label="' + (i + 1) + '번 사진' + (p.done[i] ? ' (완료)' : '') + '" aria-pressed="' + (NM.selL === i ? 'true' : 'false') + '"' + (p.done[i] ? ' disabled' : '') + '>' + nmFront(x, pm, 's') + '</button>'; }).join('')
     + '</div><div class="nmcol">'
-    + p.R.map(function (li) { var x = p.L[li]; return '<button type="button" class="nmpr' + (p.done[li] ? ' done' : '') + (NM.selR === li ? ' sel' : '') + '" data-nm="R" data-v="' + li + '"' + (p.done[li] ? ' disabled' : '') + '>' + esc(x.name) + '</button>'; }).join('')
+    + p.R.map(function (li) { var x = p.L[li]; return '<button type="button" class="nmpr' + (p.done[li] ? ' done' : '') + (NM.selR === li ? ' sel' : '') + '" data-nm="R" data-v="' + li + '" aria-pressed="' + (NM.selR === li ? 'true' : 'false') + '"' + (p.done[li] ? ' disabled' : '') + '>' + esc(x.name) + '</button>'; }).join('')
     + '</div></div>';
   if (all) h += '<div class="nmres ok">이번 세트 모두 맞혔어요!</div><button type="button" class="btn" data-nm="nextset">' + (NM.rd.queue.length ? '다음 세트 ›' : '결과 보기 ›') + '</button>';
   return h + '<button type="button" class="btn ghost" style="margin-top:8px" data-nm="again">처음부터 새로 섞기</button></div>';
