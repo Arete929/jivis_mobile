@@ -1,12 +1,11 @@
 {
   "name": "지비스",
   "short_name": "지비스",
-  "description": "지비스 — 학생 이름 외우기",
+  "description": "지비스 — 김진호 선생님 전용 폰 앱",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
-  "orientation": "portrait",
-  "background_color": "#FFF4DC",
+  "background_color": "#FAFAF9",
   "theme_color": "#FFFFFF",
   "lang": "ko",
   "icons": [
