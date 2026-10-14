@@ -100,6 +100,7 @@ function show(text, bad) {
   const el = badge();
   if (!text) { el.style.display = 'none'; return; }
   el.textContent = text; el.style.background = bad ? '#b23223' : '#222'; el.style.display = 'block';
+  try { window.parent.postMessage({ jd: 'save', text: text, bad: !!bad }, location.origin); } catch (e) { /* 부모가 없으면 그만 */ }
   el.onclick = bad ? () => { failed = 0; run(); } : null;
 }
 export function pendingWrites() { return queue.length + (running ? 1 : 0); }
