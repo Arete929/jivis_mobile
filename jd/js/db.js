@@ -11,7 +11,8 @@ const KEY = () => { try { return localStorage.getItem('jv.dkey') || ''; } catch 
 
 export const auth = { currentUser: { uid: 'hub' } };
 export const db = null;
-export const PARTS = ['units', 'classes', 'applied', 'assigns', 'moves', 'calendar', 'bells', 'refs', 'records', 'lends'];
+export const PARTS = ['units', 'classes', 'applied', 'assigns', 'moves', 'calendar', 'bells', 'refs', 'records', 'lends',
+  'calbak'];   // calbak = 학사일정 가져오기 직전 백업(되돌리기용) — 진도앱 1.66.0 부터
 export function termId(year, term) { return `${year}-${term}`; }
 export function nowKST() {
   const d = new Date(), p = n => String(n).padStart(2, '0');

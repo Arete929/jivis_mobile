@@ -11,8 +11,8 @@ import {
 import { uploadFile } from './drive.js';
 import { DRIVE_FOLDER_NAME } from './config.js';
 
-export const APP_VERSION = '1.65.2';
-export const DEPLOYED_AT = '2026-10-07 22:20';   // 배포할 때 채워진다
+export const APP_VERSION = '1.67.0';
+export const DEPLOYED_AT = '2026-10-16 09:39';   // 배포할 때 채워진다
 
 const DOW = ['일', '월', '화', '수', '목', '금', '토'];
 const DAYS5 = ['월', '화', '수', '목', '금'];
@@ -107,6 +107,7 @@ export const S = {
   refs: {},       // "수|6" -> [{kind,cls,text,note}]
   lends: {},      // "2026-08-24|1" -> {kind:'borrow'|'give', grade, cls, subject, teacher, reason, savedAt}
   records: {},    // "날짜|교시|학년|학급" -> {memo,photos,videos}
+  calbak: null,   // 학사일정 가져오기 직전 백업 {at, calendar} — 되돌리기 한 번
 };
 let planCache = null;           // 학기 누적 계획 (바뀌면 버린다)
 function dirty() { planCache = null; }
@@ -241,6 +242,7 @@ export function bootstrapApply(settings, d, work) {
   S.assigns = normAssigns(d.assigns); S.moves = d.moves || {}; S.calendar = d.calendar || {};
   S.bells = d.bells || []; S.refs = d.refs || {}; S.records = d.records || {};
   S.lends = d.lends || {};
+  S.calbak = d.calbak || null;
   S.lastSavedAt = d.__savedAt || (S.settings && S.settings.savedAt) || '';
   S._loadedAt = S.lastSavedAt;       // 이 자료가 «언제 저장된 것» 인지 — 서버와 견줄 때 쓴다
   // 주간업무계획은 따로 보관한다 — 없어도 앱은 그대로 뜬다
@@ -407,11 +409,11 @@ function planTerm(forceAuto) {
       if (a.eval) {                     // 수행평가 — 차시 번호가 없다
         const ev = u && (u.evals || []).find(x => x.id === a.eval);
         rec = { grade: a.grade, cls: a.cls, unit: a.unit, evalId: a.eval, isEval: true,
-                n: null, topic: ev ? ev.topic : '수행평가', type: '수행평가', assigned: true };
+                n: null, topic: ev ? ev.topic : '수행평가', type: '수행평가', assigned: true, src: k };
       } else {
         const l = u && (u.lessons || []).find(x => Number(x.n) === Number(a.n));
         rec = { grade: a.grade, cls: a.cls, unit: a.unit, n: Number(a.n),
-                topic: l ? l.topic : '', type: l ? l.type : '수업', assigned: true };
+                topic: l ? l.topic : '', type: l ? l.type : '수업', assigned: true, src: k };
         fixedKey[[a.grade, a.cls, a.unit, a.n].join('|')] = true;   // 자동 줄에서 뺀다
       }
       // 한 칸에 여럿이면 첫 번째가 주인, 나머지는 딸려 붙는다
@@ -430,6 +432,20 @@ function planTerm(forceAuto) {
   let skipQ = {}, pushed = {};
   // 학사일정에 막힌 자리에 걸려 있던 '직접 배정' 은 다음 수업 칸으로 밀어 준다
   const pendFixed = {};
+  /* 밀려난 직접 배정을 대기열에 넣는다. «어느 자리에서 밀렸는지(origin)» 를 같이 담아 두면
+     다음 수업 칸에 놓일 때 «원래 ○/○» 가 실제로 밀린 자리로 나온다
+     (예전엔 학기 초부터 쌓인 건너뛴 칸 기록의 맨 앞을 붙여서 엉뚱한 날짜가 찍혔다). */
+  const pushFixed = (ck, fx, origin) => {
+    (pendFixed[ck] = pendFixed[ck] || []).push(Object.assign({}, fx, { origin }));
+  };
+  /* 이 자리를 아래 runSlot 이 «내 자리로» 놓는가 — 대여한 자리 · 수업 이동으로 도착한 자리.
+     학급시간표엔 없는 자리지만 거기엔 제대로 놓이므로, 다음 칸으로 또 밀면 한 번 더 나온다. */
+  const ownedSeat = (ds, p, grade, cls) => {
+    if (!S.classes[grade + '|' + cls]) return false;
+    const l = lendsEff[ds + '|' + p];
+    if (l && l.kind === 'borrow' && l.grade === grade && String(l.cls) === String(cls)) return true;
+    return (movedInHere[ds + '|' + p] || []).some(m => m.grade === grade && String(m.cls) === String(cls));
+  };
   const seqOf = {};   // 학급별 누적 수업 횟수 (종목과 무관하게 1,2,3…)
   const place = (ds, p, rec) => {
     const ck = rec.grade + '|' + rec.cls;
@@ -455,7 +471,9 @@ function planTerm(forceAuto) {
         const per0 = club ? club.seat2per[p] : p;
         const ck0 = fx0.grade + '|' + fx0.cls;
         const has = (S.classes[ck0] || []).some(s => s[0] === dow && Number(s[1]) === per0);
-        if (!has) pendFixed[ck0] = (pendFixed[ck0] || []).concat([fx0]);
+        if (has || ownedSeat(ds, p, fx0.grade, fx0.cls)) continue;
+        pushFixed(ck0, fx0, { date: ds, period: per0, seat: p, code: club ? club.code : '',
+                              label: club ? (CAL_LABEL[club.code] || '') : '' });
       }
       for (let p = 1; p <= 7; p++) {
         const per = club ? club.seat2per[p] : p;     // 이 자리에서 실제로 하는 교시
@@ -475,7 +493,20 @@ function planTerm(forceAuto) {
           let fx = fixed[ds + '|' + p];
           const mine = fx && String(fx.cls) === String(cls);
           // 빌려온 자리 — 학사일정에 막혔거나 이미 다른 수업이 차 있으면 그냥 물러난다
-          if (borrowed && (skip || out[ds + '|' + p])) return;
+          if (borrowed && skip) {
+            if (mine && !fx.empty) {
+              const codeB = isClub ? club.code : (gcal ? gcal[p] : '');
+              pushFixed(ck, fx, { date: ds, period: per, seat: p, code: codeB, label: CAL_LABEL[codeB] || '' });
+            }
+            return;
+          }
+          if (borrowed && out[ds + '|' + p]) {
+            const oc = out[ds + '|' + p];
+            // 다른 학급 수업이 이미 차 있으면 이 배정이 사라지지 않게 다음 칸으로 민다 (같은 학급이 먼저 놓았으면 그대로)
+            if (mine && !fx.empty && !(oc.grade === grade && String(oc.cls) === String(cls)))
+              pushFixed(ck, fx, { date: ds, period: per, seat: p, code: 'FULL', label: '다른 수업' });
+            return;
+          }
           // ★비워 둔 칸 — 이 자리엔 수업을 놓지 않고 다음 칸으로 넘긴다 (자동 배정 해제)
           if (mine && fx.empty && !skip) {
             skipped[ck] = (skipped[ck] || 0) + 1;
@@ -488,12 +519,17 @@ function planTerm(forceAuto) {
             skipped[ck] = (skipped[ck] || 0) + 1;
             const code = isClub ? club.code : (gcal ? gcal[p] : '');
             (skipQ[ck] = skipQ[ck] || []).push({ date: ds, period: per, seat: p, code: code, label: CAL_LABEL[code] || '' });
-            if (mine && !fx.empty) pendFixed[ck] = (pendFixed[ck] || []).concat([fx]);   // 밀린 직접 배정
+            if (mine && !fx.empty) pushFixed(ck, fx, { date: ds, period: per, seat: p, code: code, label: CAL_LABEL[code] || '' });   // 밀린 직접 배정
             return;
           }
-          const take = (rec) => {
+          const take = (rec, fromOvr) => {
             const q = skipQ[ck] || [];
-            const from = q.length ? q.shift() : null;
+            let from = null;
+            if (fromOvr) {                  // 밀려 온 직접 배정 — 그 자리의 밀림 기록도 하나 덜어 낸다
+              const j = q.findIndex(e => e.date === fromOvr.date && e.seat === fromOvr.seat);
+              if (j >= 0) q.splice(j, 1);
+              from = fromOvr;
+            } else from = q.length ? q.shift() : null;
             // ★ 화면 칸은 '자리' 기준이므로 밀림 표시도 자리로 건다 (동아리 날엔 자리≠교시)
             if (from) pushed[from.date + '|' + (from.seat || from.period) + '|' + ck] = { date: ds, period: p };
             rec.shifted = (skipped[ck] || 0) > 0;
@@ -503,12 +539,14 @@ function planTerm(forceAuto) {
             place(ds, p, rec);
           };
           // 밀려 있던 직접 배정이 있으면 그것부터 한다
-          if ((pendFixed[ck] || []).length) {
+          // (이미 다른 칸에 놓인 같은 차시·수행평가라면 버린다 — 한 번만 놓이게)
+          while ((pendFixed[ck] || []).length) {
             const pf = pendFixed[ck].shift();
+            if (byLesson[[pf.grade, pf.cls, pf.unit, pf.isEval ? 'E' + pf.evalId : pf.n].join('|')]) continue;
             take({ grade: pf.grade, cls: pf.cls, unit: pf.unit, n: pf.n,
-                   topic: pf.topic, type: pf.type, assigned: true,
+                   topic: pf.topic, type: pf.type, assigned: true, src: pf.src || null,
                    isEval: !!pf.isEval, evalId: pf.evalId || null,
-                   extra: pf.extra || null });   // 몰아서 넣은 것도 함께 밀린다
+                   extra: pf.extra || null }, pf.origin || null);   // 몰아서 넣은 것도 함께 밀린다
             return;
           }
           if (!autoOn) return;              // ★자동 배치 꺼짐 — 날짜 미정 차시는 놓지 않는다
@@ -526,7 +564,8 @@ function planTerm(forceAuto) {
             skipped[ck] = (skipped[ck] || 0) + 1;
             (skipQ[ck] = skipQ[ck] || []).push({ date: ds, period: per, seat: p, code: 'GIVE', label: '수업 양도' });
             const fx0 = fixed[ds + '|' + p];
-            if (fx0 && String(fx0.cls) === String(cls)) pendFixed[ck] = (pendFixed[ck] || []).concat([fx0]);
+            if (fx0 && String(fx0.cls) === String(cls))
+              pushFixed(ck, fx0, { date: ds, period: per, seat: p, code: 'GIVE', label: '수업 양도' });
             return;
           }
           runSlot(ck, false);
@@ -665,7 +704,10 @@ const API = {
     return {
       version: APP_VERSION, deployedAt: DEPLOYED_AT || (S.settings && S.settings.savedAt) || '',
       sheetUrl: '', appUrl: '',
-      calSource: { url: (S.settings && S.settings.calSourceUrl) || '', savedAt: '' },
+      calSource: { url: (S.settings && S.settings.calSourceUrl) || '', savedAt: '',
+                   importedAt: (S.settings && S.settings.calImportedAt) || '',
+                   importCount: Number((S.settings || {}).calImportCount) || 0,
+                   canUndo: !!(S.calbak && S.calbak.calendar) },
       term: { year: S.settings.year, term: S.settings.term },
       dayNotes: ci.dayNotes, calendar: ci.calendar,
       grades: gradesTree(), weekDates, refs: S.refs, bells: S.bells, lends: planTerm().lends,
@@ -1019,8 +1061,21 @@ const API = {
   clearCell(a) {
     if (!a || !a.date || !a.period) return { ok: false, msg: '칸을 알 수 없습니다' };
     const key = a.date + '|' + a.period;
-    let moves = 0, lessons = 0;
-    delete S.assigns[key];
+    let moves = 0, lessons = 0, pulled = 0;
+    // ★다른 날짜에서 밀려 들어온 배정(시험·학사일정에 막혀 다음 수업 칸으로 온 것) — 이 칸엔 저장된
+    //   배정이 없고 «원래 배정한 날짜» 에 있다. 거기서 같은 차시·수행평가를 빼야 사라진다.
+    const rec0 = (planTerm().plan || {})[key];
+    if (rec0 && rec0.assigned && rec0.src && rec0.src !== key && (!a.cls || String(rec0.cls) === String(a.cls))) {
+      [rec0].concat(rec0.extra || []).forEach(r => {
+        eachAssign(x => {
+          const hit = !x.empty && x.grade === r.grade && String(x.cls) === String(r.cls) && x.unit === r.unit
+            && (r.isEval ? x.eval === r.evalId : (!x.eval && Number(x.n) === Number(r.n)));
+          if (hit) pulled++;
+          return hit;
+        });
+      });
+    }
+    if (S.assigns[key]) { pulled++; delete S.assigns[key]; }
     Object.keys(S.moves).forEach(fk => {
       const m = S.moves[fk]; if (!m) return;
       const isTo = m.toDate === a.date && Number(m.toPeriod) === Number(a.period);
@@ -1036,8 +1091,9 @@ const API = {
       if (m.n != null || m.topic || m.unit) { m.n = null; m.topic = ''; m.unit = ''; moves++; }
     });
     if (a.markEmpty && a.grade && a.cls) S.assigns[key] = [{ grade: a.grade, cls: String(a.cls), empty: true }];
+    if (!pulled && !moves && !lessons && !a.markEmpty) return { ok: true, nothing: true, moves, lessons, savedAt: nowStr() };
     dirty(); save('assigns'); save('moves');
-    return { ok: true, moves, lessons, savedAt: nowStr() };
+    return { ok: true, moves, lessons, pulled, savedAt: nowStr() };
   },
   /* ★이 칸 비우기 — 자동으로 채워진 자리도 «해제» 할 수 있게.
      그 자리에 수업을 놓지 않고 그 차시는 다음 수업 칸으로 밀린다.
@@ -1070,15 +1126,58 @@ const API = {
   getComciConf() {
     const st = S.settings || {};
     return { ok: true, url: st.comciUrl || '', key: st.comciKey || '', teacher: st.comciTeacher || '',
-             savedAt: st.comciSavedAt || '' };
+             savedAt: st.comciSavedAt || '',
+             auto: st.comciAuto !== false,                 // 자동 반영 (따로 끄지 않았으면 켬)
+             autoAt: st.comciAutoAt || '', autoMsg: st.comciAutoMsg || '' };
   },
   setComciConf(a) {
     S.settings.comciUrl = String((a && a.url) || '').trim();
     S.settings.comciKey = String((a && a.key) || '').trim();
     S.settings.comciTeacher = String((a && a.teacher) || '').trim();
+    if (a && a.auto !== undefined) S.settings.comciAuto = !!a.auto;
     S.settings.comciSavedAt = nowStr();
     saveSettings(S.settings); dirty();
     return { ok: true, savedAt: S.settings.comciSavedAt };
+  },
+  setComciAuto(on) {
+    S.settings.comciAuto = !!on;
+    saveSettings(S.settings); dirty();
+    return { ok: true, auto: !!on, savedAt: nowStr() };
+  },
+
+  /* ★컴시간 자동 반영 (v1.67.0)
+     «반영하기» 를 누르지 않아도 앱을 열 때 이번 주 바뀐 수업을 스스로 넣는다.
+     세 가지를 지킨다.
+       ① 학급시간표에서 학급을 못 찾은 것(known=false)은 건드리지 않는다
+       ② 한 번 넣었던 것은 다시 안 넣는다 — 선생님이 일부러 지운 것을 되살리면 안 되니까
+          (넣은 것의 «표»를 settings.comciAutoSeen 에 남긴다. 최근 300개만 들고 있는다)
+       ③ ⚙️ 설정에서 끌 수 있다(comciAuto=false) */
+  async autoApplyComci(fresh) {
+    const st = S.settings || {};
+    if (st.comciAuto === false) return { ok: true, skipped: 'off' };
+    if (!st.comciUrl || !st.comciTeacher) return { ok: true, skipped: 'noconf' };
+    const r = await API.fetchComci(!!fresh, 1);
+    if (!r.ok) return { ok: false, msg: r.msg || '컴시간을 받지 못했습니다' };
+    const sig = it => [it.date, it.period, it.cls, it.kind, it.toPeriod || ''].join('|');
+    const seen = {};
+    (st.comciAutoSeen || []).forEach(k => { seen[k] = true; });
+    const fresh2 = (r.items || []).filter(it => it.known && !seen[sig(it)]);
+    if (!fresh2.length) {
+      S.settings.comciAutoAt = nowStr(); saveSettings(S.settings);
+      return { ok: true, applied: 0, total: (r.items || []).length, at: S.settings.comciAutoAt };
+    }
+    const done = API.applyComci(fresh2);
+    const keep = (st.comciAutoSeen || []).concat(fresh2.map(sig));
+    S.settings.comciAutoSeen = keep.slice(Math.max(0, keep.length - 300));
+    S.settings.comciAutoAt = nowStr();
+    S.settings.comciAutoMsg = [done.moved ? '이동 ' + done.moved : '', done.covered ? '보강 ' + done.covered : '',
+                               done.borrowed ? '대여 ' + done.borrowed : '', done.gave ? '양도 ' + done.gave : '']
+      .filter(Boolean).join(' · ');
+    saveSettings(S.settings);
+    return { ok: true, applied: fresh2.length, total: (r.items || []).length,
+             moved: done.moved, gave: done.gave, borrowed: done.borrowed, covered: done.covered,
+             msg: S.settings.comciAutoMsg, at: S.settings.comciAutoAt,
+             items: fresh2.map(it => ({ cls: it.cls, date: it.date, period: it.period, kind: it.kind })) };
   },
   /* 컴시간 학급(3학년 2반)을 내 학급 이름(302 · 3-2)에 맞춘다 */
   comciClassOf(g, c) {
@@ -1161,6 +1260,16 @@ const API = {
     const me = String(st.comciTeacher || '').trim();
     if (!me) return { ok: false, msg: '⚙️ 설정에서 «내 이름»을 골라 주세요', teachers };
 
+    /* ★«내 수업인가» 는 이름이 아니라 교사 번호로 가린다 (v1.66.1)
+       컴시간은 이름 끝 글자를 가려 주는데(«김진*»), 그러면 김진걸·김진호가 똑같아진다.
+       다리는 교사표로 «김*걸·김*호» 로 바로잡아 주지만, 바뀐 수업(changes)에는 그 손질이
+       빠져 있어서(다리 v1.5.0 에서 고침) 이름만 견주면 하나도 안 맞아 바뀐 수업이 통째로
+       걸러졌다(2026-10-15 금 3교시 보강이 안 잡힌 신고).
+       같은 이름이 둘이면 번호를 못 믿으니 예전처럼 이름으로 견준다. */
+    const sameName = (tt.teachers || []).filter(t => t.name === me);
+    const meNo = sameName.length === 1 ? Number(sameName[0].i) || 0 : 0;
+    const isMe = (name, no) => (meNo && Number(no)) ? Number(no) === meNo : (name === me);
+
     // ★다리가 내려준 «그 주의 진짜 월요일»(startDate) 로 날짜를 셈한다 — week=2 든 week=1 이든 같은 식으로 맞는다.
     //   다리가 아직 안 주면(옛 판) today 기준 이번 주로 되돌아간다(예전 그대로 동작).
     const mon = tt.startDate ? parseDate(tt.startDate) : mondayOf(new Date());
@@ -1171,7 +1280,7 @@ const API = {
     /* 학급·요일마다 «내 수업이 빠진 자리» 와 «내 수업이 들어온 자리» 를 모아 짝짓는다 */
     const box = {};
     (tt.changes || []).forEach(c => {
-      const mine = c.teacher === me, was = c.fromTeacher === me;
+      const mine = isMe(c.teacher, c.teacherNo), was = isMe(c.fromTeacher, c.fromTeacherNo);
       if (!mine && !was) return;                     // 남의 과목 변경은 상관없다
       if (mine && was) return;                       // 내 수업이 그대로면 바뀐 것이 아니다
       const k = c.grade + '|' + c.cls + '|' + c.dow;
@@ -1200,7 +1309,9 @@ const API = {
         const o = b.out[x], i = b['in'][x];
         if (o && i) items.push(mk('move', o, i));         // 내 수업이 다른 교시로 옮겨졌다
         else if (o) items.push(mk('give', o, null));      // 내 수업이 없어졌다 (남이 가져감)
-        else if (i) items.push(mk('borrow', null, i));    // 내 수업이 새로 생겼다 (내가 받아옴)
+        /* ★과목은 그대로고 교사만 나로 바뀌었으면 «보강»(남의 수업을 대신 들어감)이다 —
+           내 과목 수업이 생긴 «대여» 와 다르다. 보강 자리엔 내 차시를 놓지 않는다. v1.67.0 */
+        else if (i) items.push(mk(i.subject && i.subject === i.fromSubject ? 'cover' : 'borrow', null, i));
       }
     });
     items.sort((a, b2) => (a.date < b2.date ? -1 : a.date > b2.date ? 1 : a.period - b2.period));
@@ -1226,7 +1337,7 @@ const API = {
   /* 고른 변경을 수업 이동·대여·양도로 넣는다 (kind '컴시간' 으로 표시해 둔다) */
   applyComci(items) {
     const plan = planTerm();
-    let moved = 0, gave = 0, borrowed = 0;
+    let moved = 0, gave = 0, borrowed = 0, covered = 0;
     (items || []).forEach(it => {
       if (!it || !it.date || !it.cls) return;
       if (it.kind === 'move') {
@@ -1243,13 +1354,18 @@ const API = {
         API.setLend({ date: it.date, period: it.period, kind: 'give', grade: it.grade, cls: it.cls,
                       subject: it.subject || '', teacher: it.teacher || '', reason: '컴시간 변경' });
         gave++;
+      } else if (it.kind === 'cover') {
+        // ★보강 — 남의 수업(과목 그대로)에 내가 대신 들어간다. 내 차시는 놓지 않는다
+        API.setLend({ date: it.date, period: it.period, kind: 'cover', grade: it.grade, cls: it.cls,
+                      subject: it.subject || '', teacher: it.teacher || '', reason: '컴시간 보강' });
+        covered++;
       } else {
         API.setLend({ date: it.date, period: it.period, kind: 'borrow', grade: it.grade, cls: it.cls,
                       subject: it.subject || '', teacher: it.teacher || '', reason: '컴시간 변경' });
         borrowed++;
       }
     });
-    return { ok: true, moved: moved, gave: gave, borrowed: borrowed, savedAt: nowStr() };
+    return { ok: true, moved: moved, gave: gave, borrowed: borrowed, covered: covered, savedAt: nowStr() };
   },
 
   /* ---- 수업 이동 ---- */
@@ -1527,9 +1643,12 @@ const API = {
         movedTo: c.movedTo || '', empty: !!c.empty, borrowed: !!(ld && ld.kind === 'borrow'),
         kind: 'lesson'
       };
-      // ★그 시간에 실제로 한 것 — 내어준 시간 · 학사일정 활동은 수업 자리가 아니다
+      // ★그 시간에 실제로 한 것 — 내어준 시간 · 보강 · 학사일정 활동은 «내 수업 자리» 가 아니다
       if (isGive) {
         m.kind = 'give'; m.label = '양도';
+        m.note = [ld.subject, ld.teacher, ld.reason].filter(Boolean).join(' · ');
+      } else if (ld && ld.kind === 'cover' && String(ld.cls) === String(c.cls)) {
+        m.kind = 'cover'; m.label = '보강';      // 남의 수업을 대신 들어간 자리 — 회차(수업 횟수)에 안 센다
         m.note = [ld.subject, ld.teacher, ld.reason].filter(Boolean).join(' · ');
       } else if (c.blocked) {
         m.kind = 'cal';
@@ -1727,7 +1846,9 @@ const API = {
      어느 교과 · 어느 교사 · 무슨 사유인지 함께 적어 둔다. */
   setLend(a) {
     const key = a.date + '|' + a.period;
-    const kind = a.kind === 'borrow' ? 'borrow' : 'give';
+    /* 보강(cover) = 남의 수업에 내가 대신 들어가는 것 — 과목은 그대로라 «내 수업»이 아니다.
+       그래서 대여와 달리 그 자리에 내 차시를 놓지 않는다(진도에 안 센다). v1.67.0 */
+    const kind = (a.kind === 'borrow' || a.kind === 'cover') ? a.kind : 'give';
     if (!a.grade || !a.cls) return { ok: false, msg: '학급을 먼저 고르세요' };
     S.lends[key] = {
       kind, grade: a.grade, cls: String(a.cls),
@@ -1918,7 +2039,7 @@ const API = {
             return {
               cls: rec.cls, grade: rec.grade, unit: rec.unit, n: rec.n, seq: rec.seq,
               topic: rec.topic || '', type: rec.type || '수업',
-              assigned: !!rec.assigned, shifted: !!rec.shifted,
+              assigned: !!rec.assigned, shifted: !!rec.shifted, src: rec.src || '',
               movedTo: rec.movedTo || '', from: rec.from || null,
               orig: rec.orig || null, isEval: !!rec.isEval, evalId: rec.evalId || null,
               color: unitOrder[rec.grade + '|' + rec.unit] || 0,
@@ -1949,10 +2070,13 @@ const API = {
             if (!(S.classes[ck] || []).some(t => t[0] === x.dow && Number(t[1]) === per)) return;
             const parts = ck.split('|'); slotGrade = parts[0]; slotCls = parts[1];
           });
-          // 빌려온 자리(🤝 또는 «301 보강» 메모)는 아직 차시가 없어도 그 학급의 빈 칸으로 그린다
+          // 빌려온 자리(🤝 또는 «301 보강» 메모)는 아직 차시가 없어도 그 학급의 빈 칸으로 그린다.
+          // 보강(cover) 자리도 칸으로 보여 준다 — 다만 차시는 안 놓이므로 늘 빈 칸이다(진도에 안 셈)
           if (!slotCls) {
             const ldb = r.lends[x.date + '|' + p];
-            if (ldb && ldb.kind === 'borrow') { slotGrade = ldb.grade; slotCls = String(ldb.cls); }
+            if (ldb && (ldb.kind === 'borrow' || ldb.kind === 'cover') && ldb.cls) {
+              slotGrade = ldb.grade; slotCls = String(ldb.cls);
+            }
           }
           if (slotCls) {
             const gcal = byG[slotGrade];
@@ -1999,9 +2123,141 @@ const API = {
     S.settings.calSourceUrl = url; saveSettings(S.settings);
     return { ok: true, savedAt: nowStr(), id: '', gid: '' };
   },
-  calImportStart() { throw new Error('학사일정 가져오기는 새 앱에서 준비 중입니다.'); },
-  calImportStep() { throw new Error('학사일정 가져오기는 새 앱에서 준비 중입니다.'); },
-  calImportFinish() { throw new Error('학사일정 가져오기는 새 앱에서 준비 중입니다.'); },
+  /* ===================== 학사일정 새로 가져오기 (v1.66.0) =====================
+     화면이 원본 엑셀을 읽어 «칸 목록» 으로 만들어 보내면, 여기서 지금 자료와 견주어
+     ① 미리보기(무엇이 추가·바뀜인지) ② 적용 ③ 되돌리기 를 한다.
+
+     ★«바뀐 것만 덮어쓰기» (2026-10-14 선생님 결정)
+       - 원본에 있는 칸만 새 값으로 바꾼다
+       - 원본에 없는 칸(직접 넣은 종류·전환기 일정)은 그대로 둔다
+       - 칸마다 적어 둔 메모(noteAt)는 절대 건드리지 않는다
+       - 적용 직전 학사일정 전체를 백업해 두어 한 번 되돌릴 수 있다 */
+
+  /* 들어온 칸 목록을 다듬는다 — [{date,dow,grade,period,code,note}] */
+  _calRecs(records) {
+    const out = [];
+    (records || []).forEach(r => {
+      if (!r || !r.date) return;
+      const date = String(r.date).trim();
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+      out.push({
+        date, grade: String(r.grade || '').trim(), period: Number(r.period) || 0,
+        code: String(r.code || '').trim(), note: String(r.note || '').trim(),
+      });
+    });
+    return out;
+  },
+
+  /* 지금 자료와 견준다 → {add, change, same, keep, dates, items} */
+  calImportDiff(records) {
+    const recs = API._calRecs(records);
+    if (!recs.length) return { ok: false, msg: '원본에서 학사일정을 한 건도 읽지 못했습니다.' };
+
+    const dates = {};
+    recs.forEach(r => { dates[r.date] = true; });
+    let add = 0, change = 0, same = 0;
+    const items = [];                       // 바뀌는 칸 미리보기
+    recs.forEach(r => {
+      if (r.period) {
+        const cur = (((S.calendar[r.date] || {}).g || {})[r.grade] || {})[r.period] || '';
+        if (cur === r.code) { same++; return; }
+        if (!cur) { add++; } else { change++; }
+        items.push({ date: r.date, grade: r.grade, period: r.period, before: cur, after: r.code });
+      } else {
+        const c = S.calendar[r.date] || {};
+        const curNote = String(c.note || ''), curHol = !!c.holiday, newHol = r.code === 'H';
+        const noteChanged = !!r.note && r.note !== curNote;
+        const holChanged = newHol !== curHol;
+        if (!noteChanged && !holChanged) { same++; return; }
+        if (!curNote && !curHol) add++; else change++;
+        items.push({ date: r.date, grade: '', period: 0,
+                     before: (curHol ? '휴업' : '') + (curNote ? ' ' + curNote : ''),
+                     after: (newHol ? '휴업' : '') + (r.note ? ' ' + r.note : '') });
+      }
+    });
+
+    // 원본이 다루는 날짜인데 원본에 없는 칸 — 그대로 둔다(직접 넣은 것)
+    let keep = 0;
+    Object.keys(dates).forEach(ds => {
+      const c = S.calendar[ds]; if (!c) return;
+      Object.keys(c.g || {}).forEach(g => Object.keys(c.g[g]).forEach(pd => {
+        if (!recs.some(r => r.date === ds && r.grade === g && Number(r.period) === Number(pd))) keep++;
+      }));
+    });
+
+    return { ok: true, add, change, same, keep, total: recs.length,
+             dates: Object.keys(dates).length, items: items.slice(0, 40) };
+  },
+
+  /* 적용 — 백업해 두고 바뀐 칸만 덮어쓴다 */
+  calImportApply(records) {
+    const d = API.calImportDiff(records);
+    if (!d.ok) return d;
+    const recs = API._calRecs(records);
+
+    // 되돌리기용 백업 (적용 직전 모습 그대로)
+    S.calbak = { at: nowStr(), calendar: JSON.parse(JSON.stringify(S.calendar)) };
+
+    const touched = {};
+    recs.forEach(r => { if (r.period) touched[r.date] = true; });
+
+    recs.forEach(r => {
+      const c = S.calendar[r.date] = S.calendar[r.date] || { note: '', holiday: false, g: {}, noteAt: {} };
+      if (!c.savedAt) c.savedAt = {};
+      if (r.period) {
+        if (!r.code) return;
+        c.g[r.grade] = c.g[r.grade] || {};
+        c.g[r.grade][r.period] = r.code;
+        c.savedAt[r.grade + '|' + r.period] = nowStr();
+        // 메모(noteAt)는 그대로 둔다 — 손으로 적은 것이라
+      } else {
+        if (r.code === 'H') c.holiday = true;
+        if (r.note) { c.note = r.note; c.savedAt.day = nowStr(); }
+      }
+    });
+    // 수업 코드가 들어온 날은 휴업이 아니다 (옛 휴업 표시가 남지 않게)
+    Object.keys(touched).forEach(ds => {
+      if (recs.some(r => r.date === ds && !r.period && r.code === 'H')) return;
+      const c = S.calendar[ds]; if (c) c.holiday = false;
+    });
+
+    S.settings.calImportedAt = nowStr();
+    S.settings.calImportCount = d.total;
+    S.settings.calImportAdd = d.add;
+    S.settings.calImportChange = d.change;
+    saveSettings(S.settings);
+    dirty(); save('calendar'); save('calbak');
+    return Object.assign({}, d, { savedAt: S.settings.calImportedAt, canUndo: true });
+  },
+
+  /* 되돌리기 — 바로 앞 가져오기를 취소한다 */
+  calImportUndo() {
+    const b = S.calbak;
+    if (!b || !b.calendar) return { ok: false, msg: '되돌릴 백업이 없습니다.' };
+    S.calendar = JSON.parse(JSON.stringify(b.calendar));
+    S.calbak = null;
+    S.settings.calImportedAt = '';
+    S.settings.calImportUndoneAt = nowStr();
+    saveSettings(S.settings);
+    dirty(); save('calendar'); save('calbak');
+    return { ok: true, savedAt: S.settings.calImportUndoneAt };
+  },
+
+  /* 마지막으로 가져온 때 — 화면이 버튼 옆에 적는다 */
+  getCalImportInfo() {
+    const st = S.settings || {};
+    return {
+      ok: true,
+      importedAt: st.calImportedAt || '',
+      count: Number(st.calImportCount) || 0,
+      add: Number(st.calImportAdd) || 0,
+      change: Number(st.calImportChange) || 0,
+      undoneAt: st.calImportUndoneAt || '',
+      canUndo: !!(S.calbak && S.calbak.calendar),
+      undoAt: (S.calbak && S.calbak.at) || '',
+      url: st.calSourceUrl || '',
+    };
+  },
 };
 
 /* ===================== google.script.run 흉내내기 ===================== */
