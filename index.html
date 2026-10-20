@@ -694,6 +694,10 @@ button.tg.evadd:focus-visible{outline:2px solid var(--accent);outline-offset:2px
 .gpl .gpx:active{background:rgba(0,0,0,.08)}
 .gpl .gpx.ask{background:var(--accent);color:var(--on);padding:0 10px}
 .gpl .gpx:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.gpl .gpx.gpm{font-size:13px;margin-left:2px}
+.gpedit.mod{border-color:var(--accent)}.gpedit.mod>b small{font-weight:600;color:var(--dim)}
+.gpedit.mod .fld{font-size:16px}
+.gpedit textarea.fld{min-height:84px;resize:vertical;font-size:16px;line-height:1.45}
 
 .plist.rich .tg2.cover{background:color-mix(in srgb,var(--info,#2563eb) 14%,var(--bg));border-color:transparent;color:color-mix(in srgb,var(--info,#2563eb) 72%,var(--fg))}
 
@@ -859,8 +863,8 @@ table.tt.pg td.pgt{padding:2px;height:50px}
 
 <script>
 /* ══════════════════════════════════════════════════════════
-   지비스 모바일 | @version 2.15.0
-   수정요약: v2.15.0 학생기록 — 폰에서 PC 지비스와 같은 학생기록(구글 시트)을 보고·적고·고치고·지운다(반 칩·카테고리 칩·학생 칩, 지우기는 확인 상자, 폴드 펼침은 왼쪽 명단·오른쪽 기록). 허브 op 'rec'(허브 1.8.0). / v2.14.1 학년 시간표 — 처음 열 때 고른 칸이 모든 반 빈 시간이면 가까운 수업 시간으로. / v2.14.0 «체육수업진도» 를 폰 모양으로 — 이번 주·다음 주를 넘겨 가며 표로 보고, 칸을 누르면 수업 메모·차시 배정을 폰에서 바로 한다(계산·저장은 숨겨 둔 진도 웹앱이 한다. 원본 화면은 단추로). «내 시간표» 의 이번 주를 홈의 «오늘 수업» 과 같은 자료(체육수업진도 — 수업이동·보강·대여·학사일정 반영)로 그린다. 컴시간 원본은 단추로 바꿔 볼 수 있다. / v2.13.0 시간표에 «학년 시간표» 탭 — 학년을 고르고 요일×교시 칸을 누르면 그 시간에 그 학년 모든 반의 과목·교과교사가 나온다(학급 시간표와 같은 자료). / v2.12.0 폰에 든 체육수업진도 앱을 1.65.2 → 1.67.0 으로 갈아 끼움(순연·보강 계산이 웹 진도앱과 같아진다). 허브도 calbak 묶음을 받는다. / v2.11.1 보강(진도앱 kind 'cover')을 «대여 · 내어줌» 으로 잘못 보이던 것 — «보강 + 어느 반» 으로 따로 보인다. / v2.11.0 폰에서 학년 일정(학년부 일지) 넣기·지우기 — 허브 op 'plan'(cats·add·del). 지우기는 두 번 눌러야 하고, 시트와 개수가 다르면 건드리지 않는다. / v2.10.2 PC 에서 붙인 증빙이 폰에 늦게 보이던 것 — 목록을 1분만 묵혀 두고 허브도 폴더를 새로 읽게 했다. / v2.10.1 증빙을 받다 늦어지면 한 번 더 해 보고, 그래도 안 되면 «못 받았습니다 — 다시 눌러 보세요» 를 보인다(«받는 중…» 에서 멈추던 것 고침). 기다리는 시간도 넉넉히(미리보기 90초·올리기 3분). / v2.10.0 줄을 못 찾은 증빙을 폰에서 «줄에 붙이기»(허브가 제 이름으로 다시 저장, 큰 것은 줄여서, 옛것은 휴지통). / v2.9.0 폰에서 증빙 올리기(＋ 증빙 — 사진 고르기·찍기·붙여넣기, 1600px JPEG 으로 줄여 보냄) · 큰 사진은 미리보기로 바로 보기 · 줄을 못 찾은 증빙 모아 보기. / v2.8.0 폴드6 — 펼치면 출결이 두 칸(왼쪽 오늘·적기 / 오른쪽 달 목록), 접으면 한 줄. 접었다 펴면 스스로 다시 짜인다. / v2.7.0 출결 증빙서류를 폰에서 바로 봄 — 줄의 «증빙» 단추 → 사진 보기(확대·여러 장 넘기기). PC 가 드라이브에 올린 것을 허브가 대신 읽어 온다. / v2.6.0 홈 오늘 수업에서 수업 메모 쓰기·고치기(웹앱 saveMemo — 진도앱 날짜별 조회와 같은 자료, 저장시각 표시, 저장 실패는 알림). / v2.5.1 홈 오늘 수업에 수업 대여(빌려옴·내어줌)·학사일정 활동 시간(영어듣기평가)·수업이동·밀림 표시. / v2.5.0 홈 — 오늘 수업에 차시 내용·메모(체육수업진도 웹앱을 숨겨서 미리 띄워 계산), 오늘 급식 전체 메뉴+여중/여고 단추, 오늘 출결 먼저(없으면 «모두 왔어요», 출결 화면 맨 위에도). / v2.4.0 반응형 — 폴드 접음(좁은 겉화면)·펼침(넓은 안화면)·태블릿: 640px 이상이면 메뉴가 왼쪽 세로 띠, 홈 카드 두 줄(800px~), 더보기는 가운데 창, 시간표 웹앱도 띠 옆에 맞춰 자리잡고 접었다 펴면 바로 다시 맞춤. / v2.3.0 시간표(체육수업진도)에 확대·축소 + 가로 맞춤·세로 맞춤 단추. / v2.2.0 «시간표» 가 체육수업진도 웹앱(v1.65.2) 그대로 — 시간표·계획 / 날짜별 조회 / 진도표, 편집·저장까지(허브 경유, jd/ 폴더). 컴시간 «내 시간표»·«학급 시간표» 는 같은 화면의 다른 칸으로. / v2.1.0 학사일정에 학년부 일지(학년 일정) 함께 보기 — 학년 켜기·구분 고르기, 홈 «앞으로 7일» 에도. / v2.0.0 «전부» — 혜원이지 모바일의 화면(시간표·급식·학사일정·주간업무·출결·문자 문구·바로가기)을 지비스 전용으로 옮기고 홈을 새로 짬.
+   지비스 모바일 | @version 2.15.1
+   수정요약: v2.15.1 학년 일정(학년부 일지) 한 건의 구분·내용·세부사항 고치기 — 일정 줄의 ✏️(허브 1.8.1 · 일지 다리 1.9.0). / v2.15.0 학생기록 — 폰에서 PC 지비스와 같은 학생기록(구글 시트)을 보고·적고·고치고·지운다(반 칩·카테고리 칩·학생 칩, 지우기는 확인 상자, 폴드 펼침은 왼쪽 명단·오른쪽 기록). 허브 op 'rec'(허브 1.8.0). / v2.14.1 학년 시간표 — 처음 열 때 고른 칸이 모든 반 빈 시간이면 가까운 수업 시간으로. / v2.14.0 «체육수업진도» 를 폰 모양으로 — 이번 주·다음 주를 넘겨 가며 표로 보고, 칸을 누르면 수업 메모·차시 배정을 폰에서 바로 한다(계산·저장은 숨겨 둔 진도 웹앱이 한다. 원본 화면은 단추로). «내 시간표» 의 이번 주를 홈의 «오늘 수업» 과 같은 자료(체육수업진도 — 수업이동·보강·대여·학사일정 반영)로 그린다. 컴시간 원본은 단추로 바꿔 볼 수 있다. / v2.13.0 시간표에 «학년 시간표» 탭 — 학년을 고르고 요일×교시 칸을 누르면 그 시간에 그 학년 모든 반의 과목·교과교사가 나온다(학급 시간표와 같은 자료). / v2.12.0 폰에 든 체육수업진도 앱을 1.65.2 → 1.67.0 으로 갈아 끼움(순연·보강 계산이 웹 진도앱과 같아진다). 허브도 calbak 묶음을 받는다. / v2.11.1 보강(진도앱 kind 'cover')을 «대여 · 내어줌» 으로 잘못 보이던 것 — «보강 + 어느 반» 으로 따로 보인다. / v2.11.0 폰에서 학년 일정(학년부 일지) 넣기·지우기 — 허브 op 'plan'(cats·add·del). 지우기는 두 번 눌러야 하고, 시트와 개수가 다르면 건드리지 않는다. / v2.10.2 PC 에서 붙인 증빙이 폰에 늦게 보이던 것 — 목록을 1분만 묵혀 두고 허브도 폴더를 새로 읽게 했다. / v2.10.1 증빙을 받다 늦어지면 한 번 더 해 보고, 그래도 안 되면 «못 받았습니다 — 다시 눌러 보세요» 를 보인다(«받는 중…» 에서 멈추던 것 고침). 기다리는 시간도 넉넉히(미리보기 90초·올리기 3분). / v2.10.0 줄을 못 찾은 증빙을 폰에서 «줄에 붙이기»(허브가 제 이름으로 다시 저장, 큰 것은 줄여서, 옛것은 휴지통). / v2.9.0 폰에서 증빙 올리기(＋ 증빙 — 사진 고르기·찍기·붙여넣기, 1600px JPEG 으로 줄여 보냄) · 큰 사진은 미리보기로 바로 보기 · 줄을 못 찾은 증빙 모아 보기. / v2.8.0 폴드6 — 펼치면 출결이 두 칸(왼쪽 오늘·적기 / 오른쪽 달 목록), 접으면 한 줄. 접었다 펴면 스스로 다시 짜인다. / v2.7.0 출결 증빙서류를 폰에서 바로 봄 — 줄의 «증빙» 단추 → 사진 보기(확대·여러 장 넘기기). PC 가 드라이브에 올린 것을 허브가 대신 읽어 온다. / v2.6.0 홈 오늘 수업에서 수업 메모 쓰기·고치기(웹앱 saveMemo — 진도앱 날짜별 조회와 같은 자료, 저장시각 표시, 저장 실패는 알림). / v2.5.1 홈 오늘 수업에 수업 대여(빌려옴·내어줌)·학사일정 활동 시간(영어듣기평가)·수업이동·밀림 표시. / v2.5.0 홈 — 오늘 수업에 차시 내용·메모(체육수업진도 웹앱을 숨겨서 미리 띄워 계산), 오늘 급식 전체 메뉴+여중/여고 단추, 오늘 출결 먼저(없으면 «모두 왔어요», 출결 화면 맨 위에도). / v2.4.0 반응형 — 폴드 접음(좁은 겉화면)·펼침(넓은 안화면)·태블릿: 640px 이상이면 메뉴가 왼쪽 세로 띠, 홈 카드 두 줄(800px~), 더보기는 가운데 창, 시간표 웹앱도 띠 옆에 맞춰 자리잡고 접었다 펴면 바로 다시 맞춤. / v2.3.0 시간표(체육수업진도)에 확대·축소 + 가로 맞춤·세로 맞춤 단추. / v2.2.0 «시간표» 가 체육수업진도 웹앱(v1.65.2) 그대로 — 시간표·계획 / 날짜별 조회 / 진도표, 편집·저장까지(허브 경유, jd/ 폴더). 컴시간 «내 시간표»·«학급 시간표» 는 같은 화면의 다른 칸으로. / v2.1.0 학사일정에 학년부 일지(학년 일정) 함께 보기 — 학년 켜기·구분 고르기, 홈 «앞으로 7일» 에도. / v2.0.0 «전부» — 혜원이지 모바일의 화면(시간표·급식·학사일정·주간업무·출결·문자 문구·바로가기)을 지비스 전용으로 옮기고 홈을 새로 짬.
      ★ 허브 연결(기기 열쇠) · 앱 잠금(지문/숫자 6자리) · 하단 메뉴 4칸+더보기(끌어서 바꾸기) · 이 폰에서 모두 지우기.
      ★ 바깥 글꼴 요청 없음 · 칩·버튼 44px · 선 아이콘만 · 점검(2026-10-13) 지적 사항 반영.
    v1.0.1 점검 반영(어두운 화면 정답·오답 글자 대비, 짝맞추기 단추 이름). v1.0.0 첫 판 — 이름 외우기.
@@ -870,7 +874,7 @@ table.tt.pg td.pgt{padding:2px;height:50px}
    ★ 드롭다운(select)·alert/confirm/prompt 는 쓰지 않는다 — 칩·단추·화면 안 안내로 한다.
    ══════════════════════════════════════════════════════════ */
 
-var VERSION = '2.15.0';
+var VERSION = '2.15.1';
 /* ── 테마 — auto · light · dark. 고른 것은 이 폰에만 기억한다 ── */
 var THEMES = [['auto', '자동', ['#FAFAF9', '#C1121F', '#0E1413', '#5EEAD4']], ['light', '화이트·레드', ['#FAFAF9', '#FFFFFF', '#FCE9EA', '#C1121F']], ['dark', '다크·민트', ['#0E1413', '#172120', '#12302D', '#5EEAD4']]];
 var THEME = (function () { var t = ''; try { t = localStorage.getItem('jv.theme') || ''; } catch (e) { /* */ } return /^(auto|light|dark)$/.test(t) ? t : 'auto'; })();
@@ -3311,7 +3315,7 @@ function gpDaysOfMonth(month) {         // 그 달에 학년부 항목이 있는
 function gpLine(o) {
   var x = o.x, t = x.title || x.detail || '';
   return '<span class="gpl h' + gpHue(x.cat) + (x.done ? ' done' : '') + '"><b>' + o.g + '학년</b>' + (x.cat ? '<em>' + esc(x.cat) + '</em>' : '') + '<span>' + esc(t) + '</span>'
-    + (x.title && x.detail ? '<small>' + esc(x.detail) + '</small>' : '') + gpDelBtn(o) + '</span>';
+    + (x.title && x.detail ? '<small>' + esc(x.detail) + '</small>' : '') + gpModBtn(o) + gpDelBtn(o) + '</span>';
 }
 /* ── 일지 넣기·지우기 ────────────────────────────────────────
    학년부 일지는 학년마다 시트가 따로 있다. 폰은 허브에 부탁하고, 허브가 «일지 쓰기 다리» 를 부른다.
@@ -3348,13 +3352,70 @@ function gpDelAsk(k, title) {
     draw();
   }).catch(function (e) { GPE.delBusy = false; GPE.del = ''; GPE.err = '지우지 못했습니다 — ' + ((e && e.message) || e); draw(); });
 }
+/* ── 일지 고치기 ─────────────────────────────────────────────
+   이미 있는 한 건의 구분·내용·세부사항을 고친다(날짜는 그대로). 지우기와 같은 규칙 — «같은 내용이 시트에 몇 개인지» 가 화면과 같을 때만,
+   그리고 일지 다리가 «그 줄의 지금 내용이 맞을 때만» 고친다. 내용이 빈 줄은 폰에서 못 고친다. */
+function gpModBtn(o) {
+  var k = gpDelKey(o); if (!k) return '';
+  return '<button type="button" class="gpx gpm" data-gped="' + esc(k) + '" data-gpt="' + esc(String(o.x.title || '').trim()) + '"'
+    + ' aria-label="' + esc(o.g + '학년 ' + (o.x.title || '') + ' 고치기') + '">✏️</button>';
+}
+function gpModKeep() {
+  var e = GPE.ed; if (!e) return;
+  var t = $('gpmTitle'), x = $('gpmDetail'), o = $('gpmOwn');
+  if (t) e.title = t.value; if (x) e.detail = x.value; if (o) e.own = o.value;
+}
+function gpModOpen(k, title) {
+  var p = k.split('|'), g = Number(p[0]), nth = Number(p[1]), total = Number(p[2]);
+  var items = (GP.grades && GP.grades[g] && GP.grades[g].items) || [];
+  var x = items.filter(function (y) { return String(y.title || '').trim() === title; })[nth];
+  if (!x) { GPE.err = '화면 목록이 바뀌었어요 — 새로고침해 주세요'; draw(); return; }
+  GPE.open = false; GPE.msg = ''; GPE.err = '';
+  GPE.ed = { g: g, nth: nth, total: total, old: title, md: x.month + '/' + x.day, cat: x.cat || '', own: '', title: x.title || '', detail: x.detail || '', busy: false, err: '' };
+  gpCatLoad(g);
+  if (VIEW !== 'ac') go('ac'); else draw();
+  setTimeout(function () { var el = document.querySelector('.gpedit.mod'); if (el && el.scrollIntoView) { try { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (er) { el.scrollIntoView(); } } }, 80);
+}
+function gpModHtml() {
+  var e = GPE.ed; if (!e) return '';
+  var cats = GPE.cats[e.g] || ((GP.grades && GP.grades[e.g] && GP.grades[e.g].cats) || []);
+  var short = e.old.length > 22 ? e.old.slice(0, 22) + '…' : e.old;
+  var h = '<div class="gpedit mod"><b>' + e.g + '학년 일정 고치기 <small>' + esc(e.md) + ' «' + esc(short) + '»</small></b>';
+  h += '<div class="att-lab">구분 <small>(안 골라도 됩니다)</small></div><div class="chips">'
+    + cats.map(function (c) { return '<button type="button" class="chip gpc h' + gpHue(c) + (e.cat === c ? ' on' : '') + '" data-gpmc="' + esc(c) + '">' + esc(c) + '</button>'; }).join('')
+    + '<button type="button" class="chip' + (e.cat === '*' ? ' on' : '') + '" data-gpmc="*">직접 쓰기</button></div>'
+    + (e.cat === '*' ? '<input class="fld" id="gpmOwn" placeholder="구분을 적으세요" value="' + esc(e.own) + '">' : '');
+  h += '<div class="att-lab">내용</div><input class="fld" id="gpmTitle" value="' + esc(e.title) + '">';
+  h += '<div class="att-lab">세부 <small>(여러 줄 가능 · 안 적어도 됩니다)</small></div><textarea class="fld" id="gpmDetail" rows="3">' + esc(e.detail) + '</textarea>';
+  if (e.err) h += '<div class="atwarn">' + esc(e.err) + '</div>';
+  h += '<div class="mlrow gpebtn"><button type="button" class="btn ghost sm" id="gpmX">취소</button>'
+    + '<button type="button" class="btn sm" id="gpmGo"' + (e.busy ? ' disabled' : '') + '>' + (e.busy ? '고치는 중…' : '저장') + '</button></div></div>';
+  return h;
+}
+function gpModSave() {
+  var e = GPE.ed; if (!e || e.busy) return;
+  gpModKeep();
+  var t = String(e.title || '').trim();
+  if (!t) { e.err = '내용을 적어 주세요 (내용을 없애려면 ✕ 지우기를 쓰세요)'; draw(); return; }
+  var cat = e.cat === '*' ? String(e.own || '').trim() : e.cat;
+  e.busy = true; e.err = ''; draw();
+  hubPost('plan', { act: 'edit', grade: e.g, title: e.old, nth: e.nth, total: e.total, ncat: cat, ntitle: t, ndetail: String(e.detail || '').replace(/\s+$/, '') }, 90000).then(function (j) {
+    e.busy = false;
+    if (j && j.ok) {
+      GPE.msg = '✓ ' + e.g + '학년 ' + e.md + ' «' + (t.length > 20 ? t.slice(0, 20) + '…' : t) + '» 고쳤습니다 · ' + nowHM();
+      GPE.err = ''; GPE.ed = null; GP.fresh = false; gpLoad(true);
+      if (GPE.cats[e.g] && cat && GPE.cats[e.g].indexOf(cat) < 0) GPE.cats[e.g].push(cat);
+    } else e.err = (j && j.msg) || '고치지 못했습니다';
+    draw();
+  }).catch(function (er) { e.busy = false; e.err = '고치지 못했습니다 — ' + ((er && er.message) || er); draw(); });
+}
 function gpEditGrades() {
   var gs = Object.keys(GP.grades || {}).map(Number).sort();
   return gs.length ? gs : [Number(String(HUB.cfg.cls || '3-2').charAt(0)) || 3];
 }
 function gpEditOpen() {
   var gs = gpEditGrades(), on = gpOnList();
-  GPE.open = true; GPE.g = gs.indexOf(on[0]) >= 0 ? on[0] : gs[0];
+  GPE.open = true; GPE.ed = null; GPE.g = gs.indexOf(on[0]) >= 0 ? on[0] : gs[0];
   GPE.date = todayStr(); GPE.cat = ''; GPE.own = ''; GPE.title = ''; GPE.detail = ''; GPE.msg = ''; GPE.err = '';
   gpCatLoad(GPE.g); draw();
 }
@@ -3420,6 +3481,7 @@ function gpBarHtml() {
     return '<button type="button" class="chip gpc h' + gpHue(c) + (GP.cat.indexOf(c) >= 0 ? ' on' : '') + '" data-gpc="' + esc(c) + '" aria-pressed="' + (GP.cat.indexOf(c) >= 0) + '">' + esc(c) + '</button>';
   }).join('') + '</div>';
   if (GP.err) h += '<div class="atwarn">' + esc(GP.err) + '</div>';
+  h += gpModHtml();
   h += gpEditHtml();
   return h + '</div>';
 }
@@ -3486,6 +3548,18 @@ function acWire() {
     gpEditKeep(); GPE.cat = (GPE.cat === b.dataset.gpec) ? '' : b.dataset.gpec; draw();
     if (GPE.cat === '*') { var i = $('gpeOwn'); if (i) i.focus(); }
   }); });
+  APP.querySelectorAll('[data-gped]').forEach(function (b) { b.addEventListener('click', function (e) { e.stopPropagation(); gpModOpen(b.dataset.gped, b.dataset.gpt); }); });
+  APP.querySelectorAll('[data-gpmc]').forEach(function (b) { b.addEventListener('click', function () {
+    gpModKeep(); var e = GPE.ed; if (!e) return; var c = b.dataset.gpmc; e.cat = (e.cat === c) ? '' : c; draw();
+    if (e.cat === '*') { var i = $('gpmOwn'); if (i) i.focus(); }
+  }); });
+  var gmx = $('gpmX'); if (gmx) gmx.addEventListener('click', function () { GPE.ed = null; draw(); });
+  var gmg = $('gpmGo'); if (gmg) gmg.addEventListener('click', gpModSave);
+  ['gpmTitle', 'gpmDetail', 'gpmOwn'].forEach(function (id) {
+    var i = $(id); if (!i) return;
+    i.addEventListener('input', gpModKeep);
+    i.addEventListener('keydown', function (e) { if (e.key === 'Enter' && id !== 'gpmDetail') { e.preventDefault(); gpModSave(); } });
+  });
   APP.querySelectorAll('[data-gpdel]').forEach(function (b) { b.addEventListener('click', function (e) { e.stopPropagation(); gpDelAsk(b.dataset.gpdel, b.dataset.gpt); }); });
   var gx = $('gpeX'); if (gx) gx.addEventListener('click', function () { gpEditKeep(); GPE.open = false; GPE.err = ''; draw(); });
   var gg = $('gpeGo'); if (gg) gg.addEventListener('click', function () { gpEditKeep(); gpEditSave(); });
@@ -3864,6 +3938,7 @@ function FEEDURL() {
 
 /* ── 업데이트 내역 ── */
 var CHANGES = [
+  { v: '2.15.1', items: ['학사일정의 학년 일정(3학년부 시트 등)을 이제 고칠 수 있어요 — 일정 줄의 ✏️ 를 눌러 구분·내용·세부사항을 바꾸고 저장하세요'] },
   { v: '2.15.0', items: ['학생기록이 폰에 들어왔어요 — 더보기 → «학생기록». PC 지비스와 같은 시트라 어느 쪽에서 적어도 서로 보여요', '반(3-1~2-5)·카테고리를 칩으로 골라 기록을 최근순으로 보고, 카드를 누르면 고칠 수 있어요. «＋ 기록 쓰기» 로 새로 적고, 저장하면 저장시각이 보여요', '지우기는 확인을 한 번 거쳐요(내용만 비워지고 시트의 줄은 남아요)', '폴드를 펼치면 왼쪽에 반 명단, 오른쪽에 그 학생의 기록이 나란히 보여요. 학생 기록은 폰에 저장하지 않고, 앱이 잠기면 화면에서도 치워요'] },
   { v: '2.14.0', items: ['체육수업진도가 폰 모양으로 바뀌었어요 — 이번 주·다음 주를 넘겨 가며 표로 보고, 칸을 누르면 아래에서 수업 메모와 차시 배정을 바로 할 수 있어요(사진·영상·수업 이동은 «웹앱 원본 보기»)', '시간표 «내 시간표» 의 이번 주가 홈의 «오늘 수업» 과 같은 자료로 나옵니다 — 수업이동·보강·대여·학사일정이 그대로 보여요', '컴시간 원본이 보고 싶으면 화면 아래 단추로 바꿔 볼 수 있어요'] },
   { v: '2.13.0', items: ['시간표에 «학년 시간표» 탭이 생겼어요 — 학년을 고르고 요일×교시 칸을 누르면 그 시간에 그 학년의 모든 반이 무슨 과목이고 누가 가르치는지 나옵니다', '폴드를 펼치면 격자는 왼쪽, 반별 과목·교사는 오른쪽에 나란히 보여요'] },
