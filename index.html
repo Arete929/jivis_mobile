@@ -461,6 +461,10 @@ main.wrap{display:block}
 .plist{list-style:none;margin:0;padding:0}.plist li{display:flex;gap:10px;align-items:baseline;padding:6px 0;border-top:1px solid var(--line)}.plist li:first-child{border-top:0}
 .plist li b{width:48px;flex:none;color:var(--dim);font-size:13px}.plist li.now{font-weight:800}.plist li.now b{color:var(--accent)}.plist li.past{opacity:.7}
 .plist li em{margin-left:auto;font-style:normal;font-size:12px;font-weight:800;padding:2px 9px;border-radius:999px;background:var(--accent);color:var(--on)}
+.plist.rich li.chgrow{background:color-mix(in srgb,#f08a00 11%,var(--bg));margin:0 -10px;padding:10px 10px;border-radius:14px;box-shadow:inset 4px 0 0 #f08a00}
+.chgbig{font-style:normal;font-size:13px;font-weight:900;padding:3px 11px;border-radius:999px;background:#ffeacc;color:#a85200;border:2px solid #f4b765;white-space:nowrap}
+.plist.rich .gc.big,.plist.rich .un.big{font-size:22px;font-weight:900}
+.plist.rich .chgl{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .chg{font-style:normal;font-size:11px;font-weight:800;padding:1px 7px;border-radius:999px;background:#fff1e2;color:#b45f06;border:1px solid #f0c48c;margin-left:6px;white-space:nowrap}.chgfrom{display:block;font-size:12px;color:var(--dim);font-weight:600;margin-top:2px}
 .mrow{padding:2px 0}.mrow b{margin-right:8px;color:var(--accent)}
 .astat{display:flex;gap:8px}.astat span{flex:1;display:flex;flex-direction:column;font-size:12px;color:var(--dim);background:var(--bg);border-radius:12px;padding:8px 10px}
@@ -1293,10 +1297,23 @@ function ttTodayCell(period) {
   return null;
 }
 function chgHtml(c) { return c && c.changed ? '<i class="chg">바뀐 수업</i>' : ''; }
-function chgText(c) {
-  if (!c || !c.changed) return '';
-  var now = [(c.grade && c.cls) ? c.grade + '-' + c.cls : '', c.subject].filter(Boolean).join(' '), f = [c.fromSubject, c.fromTeacher].filter(Boolean).join(' ');
-  return '컴시간 변경 · ' + now + (f ? ' (원래 ' + f + ')' : '');
+/* 바뀐 학급 → 진도앱이 쓰는 이름(3학년 · 303) — 메모는 «날짜|교시|학년|반» 으로 저장돼 있어서, 바뀐 학급 기준으로 찾아야 한다 */
+function chgLesson(tc, x) {
+  var g = tc.grade + '학년', c = String(tc.grade * 100 + tc.cls), same = !!(x && x.grade === g && String(x.cls) === c);
+  return { period: tc.p, grade: g, cls: c, unit: same ? (x.unit || '') : '', n: same ? (x.n == null ? 0 : x.n) : 0, same: same };
+}
+/* 바뀐 수업 한 줄 — 바뀐 학급·과목을 크게, 줄 전체에 주황 띠. 원래 수업은 홈에 안 보인다(시간표 탭에서 본다) */
+function chgRowHtml(jt, tc, x, c, st, timeTxt) {
+  var px = chgLesson(tc, x), rec = JDT.records[memoKey(jt.date, px)] || {}, act = x && x.type && x.type !== '수업';
+  var cal = c && (c.cal || c.cellCal), calLab = cal && cal.code && cal.code !== 'L' ? (cal.lbl || cal.code) : '';
+  var topic = (x && (px.same || act) && x.topic) ? x.topic : (cal && cal.note ? cal.note : '');
+  var detail = (x && px.same && x.detail) ? x.detail : '';
+  var tag = act ? '<span class="tg2 ev">' + esc(x.type) + '</span>' : (calLab ? '<span class="tg2 ev">' + esc(calLab) + '</span>' : (px.same && px.n ? '<span class="tg2">' + px.n + '차시</span>' : ''));
+  return '<li class="chgrow ' + st + '"><b class="pt">' + tc.p + '교시<small>' + esc(timeTxt || '') + '</small></b><div class="pb">'
+    + '<div class="pl1 chgl"><span class="gc big">' + esc(tc.grade + '-' + tc.cls) + '</span>' + (tc.subject ? '<span class="un big">' + esc(tc.subject) + '</span>' : '') + '<span class="chgbig">바뀐 수업</span>' + tag + '</div>'
+    + (topic ? '<div class="pl2">' + esc(topic) + '</div>' : '')
+    + (detail ? '<div class="pl3">' + esc(detail) + '</div>' : '')
+    + memoHtml(jt.date, px, rec) + '</div></li>';
 }
 /* 선 아이콘(24×24, 선 굵기 1.8) — 이모지 대신. 색은 글자색을 따라간다 */
 var LINE_IC = {
@@ -1483,13 +1500,13 @@ function jdTodayBody(jt, nowM) {
     if (!r.x) {                               // 수업 목록에 없는 시간
       var mo = c.movedOut, pu = c.pushedTo, cc = c.cellCal || c.cal, lz0 = c.lesson || {}, st0 = stateOf(c.time);
       var head = [], title = '', lines = [];
+      if (r.tcc) return chgRowHtml(jt, r.tcc, null, c, st0, c.time);
       if (c.blocked && cc) {                  // 학사일정이 수업 자리를 차지했다 — 그래도 그 반의 «수업 시간» 이다(예: 3교시 영어듣기평가)
         head.push('<span class="gc">' + esc(((lz0.grade || '') + ' ' + (lz0.cls || '')).trim() || '수업') + '</span><span class="tg2 act">' + esc(cc.lbl || cc.code || '활동') + '</span>');
         title = cc.note || '';
         if (pu && pu.date) lines.push('원래 수업은 ' + esc(mlMd(pu.date) + '(' + mlDow(pu.date) + ')') + (pu.period ? ' ' + pu.period + '교시' : '') + '로 밀림');
       } else if (c.blocked) head.push('<span class="tg2 ev">수업 불가</span>');
       if (r.ld) { head.push(lendBadge(r.ld)); lines.push(esc(lendText(r.ld, r.ld.kind === 'cover'))); }
-      if (r.tcc) { head.push('<span class="gc">' + esc((r.tcc.grade && r.tcc.cls) ? r.tcc.grade + '-' + r.tcc.cls : '수업') + '</span>' + (r.tcc.subject ? '<span class="un">' + esc(r.tcc.subject) + '</span>' : '') + chgHtml(r.tcc)); lines.push(esc(chgText(r.tcc))); }
       if (mo) { head.push('<span class="tg2 mv">' + esc(mo.kind || '수업이동') + '</span><span class="gc">수업이 옮겨감</span>');
         lines.push((mo.cls ? esc(mo.cls) + ' ' : '') + '→ ' + (mo.toDate ? esc(mlMd(mo.toDate) + '(' + mlDow(mo.toDate) + ')') : '') + (mo.toPeriod ? ' ' + mo.toPeriod + '교시' : '') + '로 옮김' + (mo.reason ? ' · ' + esc(mo.reason) : '')); }
       return '<li class="none ' + st0 + '"><b class="pt">' + r.p + '교시<small>' + esc(c.time || '') + '</small></b><div class="pb"><div class="pl1">' + head.join('') + badge(st0) + '</div>'
@@ -1497,13 +1514,14 @@ function jdTodayBody(jt, nowM) {
         + lines.map(function (t) { return '<div class="pl3">' + t + '</div>'; }).join('') + '</div></li>';
     }
     var x = r.x, state = stateOf(x.time);
+    var tcx = ttTodayCell(x.period);
+    if (tcx && tcx.changed) return chgRowHtml(jt, tcx, x, c, state, x.time);
     var rec = (JDT.records[jt.date + '|' + x.period + '|' + x.grade + '|' + x.cls] || {}), lz = c.lesson || {}, ld2 = jdLend(jt.date, x.period);
     var tag = x.type && x.type !== '수업' ? '<span class="tg2 ev">' + esc(x.type) + '</span>' : ((x.n || x.n === 0) ? '<span class="tg2">' + x.n + '차시</span>' : '<span class="tg2 mu">차시 미지정</span>');
     var mv = x.movedIn ? '<span class="tg2 mv">' + esc((lz.mv && lz.mv.kind) || '수업이동') + '</span>' + (lz.from && lz.from.label ? '<span class="mvf">← ' + esc(lz.from.label) + '에서 옮김</span>' : '') : (x.shifted ? '<span class="tg2 mv">순연</span>' : '');
     var cal = c.cal;
     return '<li class="' + state + '"><b class="pt">' + x.period + '교시<small>' + esc(x.time || '') + '</small></b><div class="pb">'
       + '<div class="pl1"><span class="gc">' + esc(x.grade) + ' ' + esc(x.cls) + '</span>' + (x.unit ? '<span class="un">' + esc(x.unit) + '</span>' : '') + tag + (ld2 ? (ld2.kind === 'cover' ? '<span class="tg2 cover">보강</span>' : '<span class="tg2 lend">대여</span>') : '') + mv + badge(state) + '</div>'
-      + (function () { var tc = ttTodayCell(x.period); return tc && tc.changed ? '<div class="pl3 lendl">' + chgHtml(tc) + ' ' + esc(chgText(tc)) + '</div>' : ''; })()
       + (ld2 ? '<div class="pl3 lendl">' + lineIc('link') + '<span>' + esc(lendWord(ld2) + ' · ' + lendText(ld2)) + '</span></div>' : '')
       + (x.topic ? '<div class="pl2">' + esc(x.topic) + '</div>' : '')
       + (x.detail ? '<div class="pl3">' + esc(x.detail) + '</div>' : '')
@@ -4516,6 +4534,13 @@ function jdRecordsLoad(jt) {
     }).getDayRecords(jt.date);
   } catch (e) { /* 웹앱이 아직 */ }
 }
+/* ★ 메모 즉시 반영 — 진도앱·다른 기기에서 적은 메모가 홈에 바로 보이게: 홈에 있는 동안 8초마다, 앞으로 나올 때마다 다시 읽는다(메모를 쓰는 중에는 건너뛴다) */
+function jdRecRefresh() {
+  if (VIEW !== 'home' || LOCK.flow || MEMO.key || document.visibilityState === 'hidden') return;
+  var jt = jdToday(); if (jt) jdRecordsLoad(jt);
+}
+setInterval(jdRecRefresh, 8000);
+document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') jdRecRefresh(); });
 /* 홈에서 웹앱이 준비될 때까지 1.5초마다 보고, 준비되면 한 번 다시 그린다(최대 60초) */
 function jdPoll() {
   if (JDT.poll || jdToday()) return;
