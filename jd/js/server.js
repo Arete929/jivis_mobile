@@ -11,8 +11,8 @@ import {
 import { uploadFile } from './drive.js';
 import { DRIVE_FOLDER_NAME } from './config.js';
 
-export const APP_VERSION = '1.67.0';
-export const DEPLOYED_AT = '2026-10-16 09:39';   // 배포할 때 채워진다
+export const APP_VERSION = '1.77.0';
+export const DEPLOYED_AT = '2026-11-16 18:35';   // 배포할 때 채워진다
 
 const DOW = ['일', '월', '화', '수', '목', '금', '토'];
 const DAYS5 = ['월', '화', '수', '목', '금'];
@@ -22,6 +22,8 @@ const DAYS5 = ['월', '화', '수', '목', '금'];
    뒤 N자리에 괄호 안 교시를 넣고, 남은 교시를 앞자리에 순서대로 채운다.
    뒤 N자리는 실제로 그 활동을 하므로 그 교시 수업은 없어진다. */
 const LAST_PERIOD = 7;
+/* 전환기보드(유콜 전환기판 GAS) — «전환기보드에서 가져오기»(v1.77.0)가 ?api=transrows 로 일정을 받는다. 열쇠 없이 누구나 읽는 창구 */
+const TRANS_BOARD_URL = 'https://script.google.com/macros/s/AKfycbxll0iA0M58l30ixnQB6bzUAmPbE6R0QAjO9KHa8m6ujkvIaA7wGmnVPWRYczbiEV3gWQ/exec';
 /* 괄호 안이 "712, 진로박람회" 처럼 뒤에 글자가 붙기도 한다 — 앞의 숫자만 읽는다 */
 const SEAT_ACTS = [
   { name: '동아리', code: 'G', re: /동아리\s*\(\s*([0-9]+)\s*[,)]/ },
@@ -359,6 +361,17 @@ function calendarForWeek(weekDates) {
    종목을 등록 순서대로 이어서, 학기 전체에 걸쳐 차시를 배정한다. */
 /* ★차시 자동 배치 — 서버 설정, 기본 꺼짐. 켜면 «날짜 미정» 차시가 학기 순서대로 놓인다 */
 function autoPlaceOn() { return !!(S.settings && S.settings.autoPlace); }
+/* ★그 날·그 자리(교시)가 학사일정·휴업으로 막혀 수업을 못 하는가 — planTerm 의 runSlot 과 같은 판정.
+   수업 이동으로 «막힌 자리» 에 도착하면 그 수업은 거기서 못 하므로 차시를 싣지 않는다(v1.73.0). */
+function seatBlockedBy(cal, grade, ds, p) {
+  if (cal.holiday[ds]) return true;
+  const club = cal.club[ds] || null;
+  const gcal = (cal.byDate[ds] || {})[grade];
+  const code0 = gcal ? gcal[p] : '';
+  return club
+    ? (!!club.clubSeat[p] || !!(code0 && code0 !== 'L' && code0 !== club.code))
+    : (gcal ? !!(code0 && code0 !== 'L') : !!cal.hasCode[ds]);
+}
 /* forceAuto=true 면 설정과 무관하게 자동 배치를 계산한다(굳히기용) — 캐시에 넣지 않는다 */
 function planTerm(forceAuto) {
   if (planCache && !forceAuto) return planCache;
@@ -568,6 +581,18 @@ function planTerm(forceAuto) {
               pushFixed(ck, fx0, { date: ds, period: per, seat: p, code: 'GIVE', label: '수업 양도' });
             return;
           }
+          // ★수업 이동으로 «막힌 자리»(학사일정·휴업)에 도착하는 수업 — 거기서는 못 하므로 이 자리의 차시는
+          //   하지 않은 것으로 하고 다음 수업 칸으로 밀린다(양도와 같다). 안 그러면 차시가 막힌 칸에 얹혀 안 빠진다.
+          const mvOut = S.moves[ds + '|' + p];
+          if (mvOut && mvOut.toDate && mvOut.toPeriod && mvOut.grade === grade && String(mvOut.cls) === String(cls)
+              && !seatBlockedBy(cal, grade, ds, p) && seatBlockedBy(cal, grade, mvOut.toDate, Number(mvOut.toPeriod))) {
+            skipped[ck] = (skipped[ck] || 0) + 1;
+            (skipQ[ck] = skipQ[ck] || []).push({ date: ds, period: per, seat: p, code: 'MOVEBLK', label: '옮긴 자리가 막힘' });
+            const fx1 = fixed[ds + '|' + p];
+            if (fx1 && !fx1.empty && String(fx1.cls) === String(cls))
+              pushFixed(ck, fx1, { date: ds, period: per, seat: p, code: 'MOVEBLK', label: '옮긴 자리가 막힘' });
+            return;
+          }
           runSlot(ck, false);
         });
         // ★수업 대여 — 원래 내 수업이 없던 자리를 빌려왔다. 그 학급의 다음 차시를 놓는다.
@@ -637,9 +662,12 @@ function autoPlanForWeek(weekDates) {
 /* 이번 주에 걸린 이동·배정만 추려서 화면으로 */
 function movesForWeek(weekDates) {
   const inWeek = {}; weekDates.forEach(w => { inWeek[w.date] = true; });
+  const cal = planTerm().cal;
   return Object.keys(S.moves).map(k => {
     const m = S.moves[k], [fd, fp] = k.split('|');
     return {
+      // 도착한 자리가 학사일정·휴업으로 막혔는가 — 화면이 차시를 싣지 않게 알려 준다
+      blocked: !!(m.toDate && m.toPeriod && seatBlockedBy(cal, m.grade, m.toDate, Number(m.toPeriod))),
       grade: m.grade, cls: m.cls, unit: m.unit || '', kind: m.kind || '수업이동',
       fromDate: fd, fromPeriod: Number(fp), toDate: m.toDate, toPeriod: Number(m.toPeriod),
       n: m.n == null ? null : Number(m.n), topic: m.topic || '', reason: m.reason || ''
@@ -821,67 +849,6 @@ const API = {
     return { ok: true, units, evals, applied: apps, assigns: asg, savedAt: S.lastSavedAt };
   },
 
-
-  /* ===== 모둠(A·B·C) 경기 일정 메모 (v1.63.0) =====
-     «경기평가 제N경기» 로 이름 붙인 수행평가가 날짜를 받으면, 그 날 그 반 진도표 칸에
-     «#N경기 (1) 승주네 vs (2) 나은이네» 를 자동으로 적는다. A=1·B=2·C=3 고정, 대진은 A-B·B-C·C-A 순. */
-  getTeamRoster() {
-    const st = S.settings || {};
-    return { ok: true, roster: st.teamRoster || {}, savedAt: st.teamRosterSavedAt || '' };
-  },
-  setTeamRoster(map) {
-    S.settings.teamRoster = map || {};
-    S.settings.teamRosterSavedAt = nowStr();
-    saveSettings(S.settings); dirty();
-    return { ok: true, savedAt: S.settings.teamRosterSavedAt };
-  },
-  /* 이름에서 성을 떼고 «승주네»·«나은이네» 를 만든다 (받침 있으면 «이네») */
-  teamName_(full) {
-    const given = String(full || '').trim().length > 1 ? String(full).trim().slice(1) : String(full || '').trim();
-    if (!given) return '';
-    const last = given.charCodeAt(given.length - 1) - 0xAC00;
-    const hasBatchim = last >= 0 && last < 11172 && (last % 28) !== 0;
-    return given + (hasBatchim ? '이네' : '네');
-  },
-  previewGameMemos() { return API.fillGameMemos(true); },
-  /* dryRun 이면 저장하지 않고 몇 건이 어떻게 될지만 돌려준다(미리보기) */
-  fillGameMemos(dryRun) {
-    const roster = (S.settings || {}).teamRoster || {};
-    const ORDER = ['A', 'B', 'C'];
-    const items = [];
-    let noRoster = 0, kept = 0, noMatch = 0;
-    Object.keys(S.assigns).forEach(key => {
-      const parts = key.split('|'); const date = parts[0], period = Number(parts[1]);
-      assignsAt(key).forEach(a => {
-        if (!a || !a.eval) return;                      // 수행평가가 아니면 상관없다
-        const u = S.units[a.grade + '|' + a.unit]; if (!u) return;
-        const ev = (u.evals || []).find(x => x.id === a.eval); if (!ev) return;
-        const m = String(ev.topic || '').match(/제\s*(\d+)\s*경기/);
-        if (!m) { noMatch++; return; }                   // «경기평가 제N경기» 꼴이 아니면 건드리지 않는다
-        const n = Number(m[1]);
-        const team = roster[String(a.cls)];
-        if (!team || !team.A || !team.B || !team.C) { noRoster++; return; }
-        const i = (n - 1) % 3, first = ORDER[i], second = ORDER[(i + 1) % 3];
-        const label = x => ORDER.indexOf(x) + 1;
-        const text = '#' + n + '경기 (' + label(first) + ') ' + API.teamName_(team[first])
-          + ' vs (' + label(second) + ') ' + API.teamName_(team[second]);
-        const rk = [date, period, a.grade, a.cls].join('|');
-        const cur = S.records[rk];
-        const autoBefore = !cur || !cur.memo || /^#\d+경기 /.test(cur.memo);
-        if (!autoBefore) { kept++; return; }              // 선생님이 직접 적은 메모는 건드리지 않는다
-        items.push({ date: date, period: period, grade: a.grade, cls: a.cls, n: n, text: text, key: rk });
-      });
-    });
-    if (!dryRun) {
-      items.forEach(it => {
-        const r = S.records[it.key] = S.records[it.key] || { memo: '', photos: [], videos: [] };
-        r.memo = it.text; r.memoAt = nowStr();
-      });
-      if (items.length) { dirty(); save('records'); }
-    }
-    items.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.period - b.period));
-    return { ok: true, filled: items.length, noRoster: noRoster, kept: kept, items: items, savedAt: nowStr() };
-  },
 
   /* ---- 수행평가 (종목 안에 있지만 차시 번호는 없다) ---- */
   addEval(grade, unitName, topic) {
@@ -1435,6 +1402,107 @@ const API = {
     return { ok: true, count: n, savedAt: S.lastSavedAt || nowStr() };
   },
 
+  /* ===== 학사일정 목록 (v1.76.0) — 날짜·교시·학년·종류·내용을 한 줄씩 보고 고친다 =====
+     한 줄 = «같은 날 · 같은 종류 · 같은 내용» 의 일정. 같은 일정이 여러 교시·여러 학년에 걸려 있으면
+     한 줄에 교시·학년을 모아 보여 준다(5·6·7교시 / 2학년·3학년). period 0 = «하루»(날짜 메모·휴업). */
+  listCalendarRows() {
+    const rows = [];
+    Object.keys(S.calendar).sort().forEach(ds => {
+      const c = S.calendar[ds] || {};
+      if (c.holiday || c.note) {
+        rows.push({ date: ds, period: 0, periods: [], grades: [], code: c.holiday ? 'H' : '', note: c.note || '',
+                    savedAt: (c.savedAt || {}).day || '' });
+      }
+      const byKind = {};          // 코드·내용 → 학년 → 교시들
+      Object.keys(c.g || {}).forEach(g => Object.keys(c.g[g] || {}).forEach(p => {
+        const note = (c.noteAt || {})[g + '|' + p] || '';
+        let code = c.g[g][p] || '';
+        if (!code && !note) return;
+        if (!code) code = 'L';     // 메모만 적은 칸은 «수업» 으로 둔다(칸에 메모만 보이는 쪽)
+        if (code === 'L' && !note) return;   // 시트에서 가져오면 평범한 수업 칸마다 «L» 이 들어온다 — 일정이 아니므로 목록에서 뺀다
+        const k = code + '\u0001' + note;
+        const b = byKind[k] = byKind[k] || { code, note, byGrade: {} };
+        (b.byGrade[g] = b.byGrade[g] || []).push(Number(p));
+      }));
+      Object.keys(byKind).forEach(k => {
+        const b = byKind[k];
+        // 교시 묶음이 같은 학년끼리 한 줄로
+        const bySet = {};
+        Object.keys(b.byGrade).forEach(g => {
+          const ps = b.byGrade[g].sort((x, y) => x - y);
+          const key = ps.join(',');
+          (bySet[key] = bySet[key] || { periods: ps, grades: [] }).grades.push(g);
+        });
+        Object.keys(bySet).forEach(key => {
+          const s = bySet[key];
+          const at = s.periods.map(p => (c.savedAt || {})[s.grades[0] + '|' + p] || '').sort().pop() || '';
+          rows.push({ date: ds, period: -1, periods: s.periods, grades: s.grades.sort(), code: b.code, note: b.note, savedAt: at });
+        });
+      });
+    });
+    rows.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : (a.periods[0] || 0) - (b.periods[0] || 0)));
+    return { ok: true, rows, kinds: Object.keys(CAL_LABEL).map(k => ({ code: k, label: CAL_LABEL[k] })),
+             importedAt: (S.settings && S.settings.calImportedAt) || '' };
+  },
+  /* 한 줄을 고친다 — old(원래 모습)를 지우고 new 를 쓴다. old 가 없으면 새로 더하는 것, new 가 없으면 지우는 것.
+     되돌릴 수 있게 건드린 날짜들의 «이전 모습» 을 돌려준다. */
+  saveCalendarRow(a) {
+    const old = a && a.old, nw = a && a.new;
+    if (!old && !nw) return { ok: false, msg: '바꿀 것이 없습니다' };
+    const cellsOf = r => {
+      if (!r) return [];
+      if (!r.periods || !r.periods.length) return [{ g: '', p: 0 }];          // 하루
+      const out = [];
+      (r.grades || []).forEach(g => (r.periods || []).forEach(p => out.push({ g, p: Number(p) })));
+      return out;
+    };
+    let nCode = '', nNote = '';
+    if (nw) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(String(nw.date || ''))) return { ok: false, msg: '날짜를 골라 주세요' };
+      const isDay = !nw.periods || !nw.periods.length;
+      if (!isDay) {
+        if (!(nw.grades || []).length) return { ok: false, msg: '학년을 하나 이상 골라 주세요' };
+        if ((nw.periods || []).some(p => !(Number(p) >= 1 && Number(p) <= 7))) return { ok: false, msg: '교시는 1~7 입니다' };
+      }
+      nCode = String(nw.code || '').trim(); nNote = String(nw.note || '').trim();
+      if (isDay) { if (nCode && nCode !== 'H') nCode = ''; }       // 하루 줄은 «휴업» 이거나 메모뿐
+      else if (!nCode && nNote) nCode = 'L';
+      if (!nCode && !nNote) return { ok: false, msg: '종류나 내용을 하나는 적어 주세요' };
+    }
+    // 이전 모습 보관
+    const snap = {};
+    [old && old.date, nw && nw.date].forEach(d => { if (d && !(d in snap)) snap[d] = S.calendar[d] ? JSON.parse(JSON.stringify(S.calendar[d])) : null; });
+    // 덮어쓰게 될 다른 일정 세기
+    let overwrote = 0;
+    if (nw) {
+      const mine = {}; cellsOf(old).forEach(c => { if (old.date === nw.date) mine[c.g + '|' + c.p] = true; });
+      cellsOf(nw).forEach(c => {
+        if (mine[c.g + '|' + c.p]) return;
+        const cc = S.calendar[nw.date]; if (!cc) return;
+        if (c.p === 0) { if (cc.holiday || cc.note) overwrote++; return; }
+        const oc = ((cc.g || {})[c.g] || {})[c.p] || '', on = (cc.noteAt || {})[c.g + '|' + c.p] || '';
+        if ((oc && !(oc === 'L' && !on)) || on) overwrote++;      // 평범한 수업 칸(L)은 «덮어쓴» 것으로 세지 않는다
+      });
+    }
+    // 지우고
+    if (old) cellsOf(old).forEach(c => {
+      if (c.p === 0) API.setCalendarEntry(old.date, '', 0, '', '');
+      else API.setCalendarEntry(old.date, c.g, c.p, '', '');
+    });
+    // 쓴다
+    if (nw) cellsOf(nw).forEach(c => {
+      if (c.p === 0) API.setCalendarEntry(nw.date, '', 0, nCode === 'H' ? 'H' : '', nNote);
+      else API.setCalendarEntry(nw.date, c.g, c.p, nCode, nNote);
+    });
+    return { ok: true, savedAt: nowStr(), undo: snap, overwrote };
+  },
+  /* 되돌리기 — saveCalendarRow 가 준 «이전 모습» 을 그대로 되돌려 놓는다 */
+  restoreCalendarDays(snap) {
+    Object.keys(snap || {}).forEach(d => { if (snap[d]) S.calendar[d] = snap[d]; else delete S.calendar[d]; });
+    dirty(); save('calendar');
+    return { ok: true, savedAt: nowStr() };
+  },
+
   /* ---- 매주 되풀이되는 학사일정 정리 ----
      금요일 1교시 범교과처럼 학기 내내 같은 요일·교시에 붙어 있는 항목을 모아 보여주고,
      한 번에 지운다. 학년을 따로 고르지 않아도 등록된 모든 학년에서 함께 사라진다. */
@@ -1834,10 +1902,116 @@ const API = {
     saveSettings(S.settings);
     return { ok: true, days, cells, skipped, bad: p.bad, savedAt: S.trSavedAt };
   },
+  /* ---- 전환기보드에서 가져오기 (v1.77.0) ----
+     전환기보드(유콜 전환기판 GAS)의 ?api=transrows — 칠판 «전환기 일정» 칸과 같은 줄(프로그램·리그)을 교시 한 줄씩 받는다.
+     오늘 이후 날짜만 견준다. 학년 전체에 같은 교시인 일정만 넣고, 반마다 교시가 다르면(팝드론) 목록으로만 보여 준다.
+     보드에 없는 «전환기(TR)» 칸은 지울 거리로 내놓는다(취소된 일정 — 11/18 어둑시니처럼). 동아리·진로 자리는 그대로. */
+  async transBoardPreview(grade) {
+    const g = grade || '3학년';
+    const today = fmtDate(new Date());
+    const from = S.settings.termFrom, to = S.settings.termTo;
+    const r = await fetch(TRANS_BOARD_URL + '?api=transrows&from=' + today.replace(/-/g, '') + '&_=' + Date.now());
+    if (!r.ok) return { ok: false, msg: '전환기보드에서 받지 못했습니다 (' + r.status + ')' };
+    const j = await r.json();
+    if (!j || !j.ok) return { ok: false, msg: '전환기보드가 일정을 주지 않았습니다' };
+    const clsNo = c => { const m = String(c).match(/\d+/g) || []; let n = Number(m[m.length - 1] || 0); if (n >= 100) n %= 100; return n; };
+    // 이 학년에서 내가 가르치는 반 — 없으면 보드에 나온 반 전체로 견준다
+    let mine = (gradesTree()[g] || { classes: [] }).classes.map(clsNo).filter(n => n > 0);
+    const rows = (j.rows || []).map(x => ({ date: String(x.ymd).replace(/^(\d{4})(\d{2})(\d{2})$/, '$1-$2-$3'), period: Number(x.period),
+      title: String(x.title || '').trim(), classes: (x.classes || []).map(Number).filter(n => n > 0) }))
+      .filter(x => x.date >= today && x.title && x.period >= 1 && x.period <= LAST_PERIOD && (!from || !to || (x.date >= from && x.date <= to)));
+    if (!mine.length) {
+      const all = {}; rows.forEach(x => x.classes.forEach(n => { all[n] = 1; }));
+      mine = Object.keys(all).map(Number);
+    }
+    const uniq = a => a.filter((p, i) => a.indexOf(p) === i).sort((x, y) => x - y);
+    const perLabel = ps => {
+      if (ps.length === LAST_PERIOD) return '종일';
+      const run = ps.every((p, i) => !i || p === ps[i - 1] + 1);
+      return (ps.length === 1 ? ps[0] : run ? ps[0] + '-' + ps[ps.length - 1] : ps.join('·')) + '교시';
+    };
+    // 날짜·제목으로 묶고, 반마다 몇 교시인지 본다
+    const groups = {}, order = [];
+    rows.forEach(x => {
+      const k = x.date + '|' + x.title;
+      if (!groups[k]) { groups[k] = { date: x.date, name: x.title, rows: [] }; order.push(k); }
+      groups[k].rows.push(x);
+    });
+    const adds = [], same = [], perClass = [], covered = {};
+    order.forEach(k => {
+      const gp = groups[k];
+      const psOf = n => uniq(gp.rows.filter(x => !x.classes.length || x.classes.indexOf(n) >= 0).map(x => x.period));
+      const sets = mine.length ? mine.map(psOf) : [uniq(gp.rows.map(x => x.period))];
+      gp.rows.forEach(x => { covered[gp.date + '|' + x.period] = 1; });
+      const dow = DOW[parseDate(gp.date).getDay()];
+      if (!sets.every(s => s.join(',') === sets[0].join(','))) {
+        const by = {};
+        mine.forEach(n => { const l = perLabel(psOf(n)).replace('-', '~'); (by[l] = by[l] || []).push(n); });
+        perClass.push({ key: gp.date + '|' + gp.name, date: gp.date, dow, name: gp.name,
+          detail: Object.keys(by).map(l => by[l].sort((a, b) => a - b).join('·') + '반 ' + l).join(' / ') });
+        return;
+      }
+      const periods = sets[0];
+      if (!periods.length) return;                       // 내 반에는 없는 일정
+      const tag = perLabel(periods);
+      const memo = '(' + tag + ') ' + gp.name;
+      const c = S.calendar[gp.date] || {};
+      const cur = (c.g && c.g[g]) || {}, noteAt = c.noteAt || {};
+      let changed = false, any = false;
+      const cells = API.seatsOfDate(gp.date, periods).map(s => {
+        covered[gp.date + '|' + s.seat] = 1;
+        const was = cur[s.seat] || '', wasNote = noteAt[g + '|' + s.seat] || '';
+        const isSame = was === 'TR' && wasNote === memo;
+        if (!s.act && !isSame) { any = true; if (was === 'TR') changed = true; }
+        return { seat: s.seat, per: s.per, keep: !!s.act, same: isSame,
+                 was: was ? (CAL_LABEL[was] || was) : '', wasNote: was === 'TR' ? wasNote : '' };
+      });
+      const it = { key: gp.date + '|' + gp.name, date: gp.date, dow, name: gp.name, tag: tag.replace('-', '~'), memo, cells, changed };
+      (any ? adds : same).push(it);
+    });
+    // 보드에 없는 전환기 칸 — 오늘 이후, 날짜·메모로 묶는다
+    const delMap = {}, dels = [];
+    Object.keys(S.calendar).sort().forEach(ds => {
+      if (ds < today || (from && to && !(ds >= from && ds <= to))) return;
+      const c = S.calendar[ds] || {}, cur = (c.g && c.g[g]) || {}, noteAt = c.noteAt || {};
+      Object.keys(cur).forEach(p => {
+        if (cur[p] !== 'TR' || covered[ds + '|' + p]) return;
+        const memo = noteAt[g + '|' + p] || '';
+        const k = ds + '|' + memo;
+        if (!delMap[k]) { delMap[k] = { key: k, date: ds, dow: DOW[parseDate(ds).getDay()], memo, seats: [] }; dels.push(delMap[k]); }
+        delMap[k].seats.push(Number(p));
+      });
+    });
+    dels.forEach(d => d.seats.sort((a, b) => a - b));
+    S.trBoardFetchedAt = nowStr();
+    return { ok: true, grade: g, fetchedAt: S.trBoardFetchedAt, adds, same, dels, perClass,
+             savedAt: (S.settings && S.settings.trBoardAt) || '' };
+  },
+  /* 미리보기에서 고른 것만 반영한다 — pick = { adds:[key…], dels:[key…] }.
+     보드를 다시 받아 그 사이 바뀐 것까지 맞춘 뒤, 고른 열쇠와 맞는 것만 손댄다. */
+  async transBoardApply(grade, pick) {
+    const g = grade || '3학년';
+    const p = await API.transBoardPreview(g);
+    if (!p.ok) return p;
+    const wantA = new Set((pick && pick.adds) || []), wantD = new Set((pick && pick.dels) || []);
+    let added = 0, removed = 0;
+    p.adds.forEach(it => {
+      if (!wantA.has(it.key)) return;
+      it.cells.forEach(c => { if (c.keep || c.same) return; API.setCalendarEntry(it.date, g, c.seat, 'TR', it.memo); added++; });
+    });
+    p.dels.forEach(d => {
+      if (!wantD.has(d.key)) return;
+      d.seats.forEach(s => { API.setCalendarEntry(d.date, g, s, '', undefined); removed++; });
+    });
+    S.settings.trBoardAt = nowStr();
+    saveSettings(S.settings);
+    return { ok: true, added, removed, savedAt: S.settings.trBoardAt };
+  },
   transitionInfo() {
     return { ok: true, text: S.trText || (S.settings && S.settings.trText) || '',
              grade: S.trGrade || (S.settings && S.settings.trGrade) || '3학년',
-             savedAt: S.trSavedAt || (S.settings && S.settings.trSavedAt) || '' };
+             savedAt: S.trSavedAt || (S.settings && S.settings.trSavedAt) || '',
+             boardAt: (S.settings && S.settings.trBoardAt) || '' };
   },
 
   /* ---- 수업 대여 · 수업 양도 ----
@@ -2084,7 +2258,12 @@ const API = {
             const blocked = club
               ? (!!club.clubSeat[p] || !!(c0 && c0 !== 'L' && c0 !== club.code))
               : (gcal ? !!(c0 && c0 !== 'L') : !!cal.hasCode[x.date]);
+            // 수업 이동으로 떠나는 자리면 어디로 가는지 알려 준다 — 회차표가 «옮겨간 자리가 활동이면 그 회차는 활동» 으로 적는다
+            const mvN = S.moves[x.date + '|' + p];
+            const movedTo = (mvN && mvN.toDate && mvN.toPeriod && mvN.grade === slotGrade && String(mvN.cls) === String(slotCls))
+              ? mvN.toDate + '|' + mvN.toPeriod : '';
             return { cls: slotCls, grade: slotGrade, noplan: true, blocked: blocked,
+                     movedTo: movedTo,
                      orig: (club ? per : null),
                      rec: recOf(x.date, p, slotGrade, slotCls),
                      // 비워 둔 칸(자동 배정 해제)인가
@@ -2159,10 +2338,19 @@ const API = {
     const items = [];                       // 바뀌는 칸 미리보기
     recs.forEach(r => {
       if (r.period) {
-        const cur = (((S.calendar[r.date] || {}).g || {})[r.grade] || {})[r.period] || '';
+        const c0 = S.calendar[r.date] || {};
+        const cur = ((c0.g || {})[r.grade] || {})[r.period] || '';
         if (cur === r.code) { same++; return; }
         if (!cur) { add++; } else { change++; }
-        items.push({ date: r.date, grade: r.grade, period: r.period, before: cur, after: r.code });
+        // 코드 글자(L·J)만으로는 무엇인지 알 수 없다 — 종류 이름과 일정명을 함께 보낸다
+        const curNote0 = (c0.noteAt || {})[r.grade + '|' + r.period] || '';
+        const nm = cd => cd ? (cd === 'L' ? '수업' : (CAL_LABEL[cd] || cd)) : '없음';
+        const withNote = (cd, note) => nm(cd) + (note ? ' · ' + note : '');
+        items.push({ date: r.date, grade: r.grade, period: r.period,
+                     before: cur, after: r.code,
+                     beforeTxt: withNote(cur, curNote0),
+                     // 칸 메모는 비어 있을 때만 채우므로, 이미 적어 둔 것이 있으면 그것이 남는다
+                     afterTxt: withNote(r.code, curNote0 || r.note || '') });
       } else {
         const c = S.calendar[r.date] || {};
         const curNote = String(c.note || ''), curHol = !!c.holiday, newHol = r.code === 'H';
@@ -2209,7 +2397,9 @@ const API = {
         c.g[r.grade] = c.g[r.grade] || {};
         c.g[r.grade][r.period] = r.code;
         c.savedAt[r.grade + '|' + r.period] = nowStr();
-        // 메모(noteAt)는 그대로 둔다 — 손으로 적은 것이라
+        // 메모(noteAt)는 손으로 적은 것이라 그대로 둔다. 다만 행사 내용에서 읽어 온 교육 이름은
+        // 비어 있는 칸에만 채운다 — 안 그러면 «범교과» 라고만 뜨고 무슨 교육인지 알 수 없다
+        if (r.note && !c.noteAt[r.grade + '|' + r.period]) c.noteAt[r.grade + '|' + r.period] = r.note;
       } else {
         if (r.code === 'H') c.holiday = true;
         if (r.note) { c.note = r.note; c.savedAt.day = nowStr(); }

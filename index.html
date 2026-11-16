@@ -867,6 +867,48 @@ table.tt.pg td.pgt{padding:2px;height:50px}
   .recw{display:grid;grid-template-columns:230px minmax(0,1fr);gap:12px;align-items:start}
   .recl{display:block;position:sticky;top:12px;max-height:calc(100vh - 24px);overflow:auto}
 }
+/* ── 체육수업진도 › 차시 목록(v2.18.0, pgl.js) ── */
+.pgsub{margin:0 0 10px}
+.pgsub .chip{flex:1 1 0;justify-content:center}
+.pglk{display:block;font-size:12px;font-weight:700;color:var(--dim);margin:8px 0 5px}
+.pglc1 .pglk:first-child{margin-top:0}
+.pglus{flex-wrap:nowrap;overflow-x:auto;padding-bottom:2px;-webkit-overflow-scrolling:touch}
+.pglus .chip{flex:none}
+.pglus .chip small{font-weight:600;opacity:.8;margin-left:4px;font-size:12px}
+.chip.pgladd{border-style:dashed}
+.pglnew{display:flex;gap:6px;margin-top:8px}
+.pglnew .pgli{flex:1;min-width:0}
+.pglcard h2 small{font-weight:600;color:var(--dim)}
+.pgll{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--card)}
+.pglr{border-top:1px solid var(--line)}
+.pglr:first-child{border-top:0}
+.pglrow{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:10px;width:100%;min-height:52px;padding:9px 12px;cursor:pointer}
+.pglrow:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.pglr.open .pglrow{background:var(--soft)}
+.pgln{width:22px;text-align:right;font-weight:800;color:var(--dim);flex:none}
+.pgltg{font-size:11.5px;font-weight:800;border-radius:6px;padding:1px 6px;flex:none;background:color-mix(in srgb,var(--accent) 12%,var(--card));color:var(--accent)}
+.pgltg.ev{background:color-mix(in srgb,var(--warn) 16%,var(--card));color:var(--warn)}
+.pglx{flex:1;min-width:0}
+.pglx b{display:block;font-size:15px;font-weight:800;color:var(--fg)}
+.pglx span{display:block;font-size:12.5px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pglx span.e{opacity:.7}
+.pglc{color:var(--dim);font-size:18px;flex:none}
+.pgle{padding:4px 12px 12px;background:var(--soft);border-top:1px solid var(--line)}
+.pgli{width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit;font-size:16px;background:var(--card);color:var(--fg)}
+textarea.pgli{resize:vertical;min-height:64px}
+.pgli:focus{outline:2px solid var(--accent);outline-offset:0}
+.pglbtns{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.pglbtns .btn[disabled]{opacity:.4}
+.btn.ghost.pgldel{color:var(--bad,#be123c)}
+.btn.ghost.pgldel.arm{background:var(--bad,#be123c);border-color:var(--bad,#be123c);color:var(--on,#fff)}
+.btn.pglsave{width:100%;margin-top:8px;background:var(--accent);border-color:var(--accent);color:var(--on,#fff);font-weight:800}
+.btn.pglsave[disabled]{opacity:.6}
+.pglst{font-size:12px;color:var(--ok);margin-top:6px;font-weight:600}
+.pglwarn{font-size:12px;color:var(--warn);margin-top:6px}
+.pgladdrow{all:unset;box-sizing:border-box;display:block;width:100%;margin-top:10px;border:1.5px dashed var(--line);border-radius:12px;padding:12px;text-align:center;font-weight:800;color:var(--dim);cursor:pointer;min-height:44px}
+.pgladdrow:focus-visible{outline:2px solid var(--accent)}
+.pgladdrow[disabled]{opacity:.5;cursor:default}
+.pglevh{color:var(--warn)!important}
 </style>
 </head>
 <body>
@@ -879,8 +921,8 @@ table.tt.pg td.pgt{padding:2px;height:50px}
 
 <script>
 /* ══════════════════════════════════════════════════════════
-   지비스 모바일 | @version 2.17.0
-   수정요약: v2.17.0 학급 시간표의 바뀐 수업(교체·보강)을 칸 테두리·배경(주황)으로 구분 — 바뀐 과목·교사를 맞바꿈 아이콘과 함께 한 줄로 강조, 원래 과목·교사는 아래 흐린 회색(다리 1.15.1 이 이번 주 실제 시간표를 줌). / v2.16.1 다크 테마에서 입력칸(문자 문구 작성 등) 글자가 검정이라 안 보이던 것 — 입력칸 글자색을 테마색으로, 안내 글자(placeholder)도 보이게. / v2.16.0 넓은 화면(폴드를 펼침·태블릿)의 왼쪽 사이드바에 «더보기» 에 숨어 있던 화면도 모두 펼쳐 보임(좁은 화면은 전처럼 4칸 + 더보기). / v2.15.2 학년 일정 고치기에서 날짜도 바꾼다(날짜 칸 — 바꾸면 그 날짜로 옮기고 확인 체크도 함께). / v2.15.1 학년 일정(학년부 일지) 한 건의 구분·내용·세부사항 고치기 — 일정 줄의 ✏️(허브 1.8.1 · 일지 다리 1.9.0). / v2.15.0 학생기록 — 폰에서 PC 지비스와 같은 학생기록(구글 시트)을 보고·적고·고치고·지운다(반 칩·카테고리 칩·학생 칩, 지우기는 확인 상자, 폴드 펼침은 왼쪽 명단·오른쪽 기록). 허브 op 'rec'(허브 1.8.0). / v2.14.1 학년 시간표 — 처음 열 때 고른 칸이 모든 반 빈 시간이면 가까운 수업 시간으로. / v2.14.0 «체육수업진도» 를 폰 모양으로 — 이번 주·다음 주를 넘겨 가며 표로 보고, 칸을 누르면 수업 메모·차시 배정을 폰에서 바로 한다(계산·저장은 숨겨 둔 진도 웹앱이 한다. 원본 화면은 단추로). «내 시간표» 의 이번 주를 홈의 «오늘 수업» 과 같은 자료(체육수업진도 — 수업이동·보강·대여·학사일정 반영)로 그린다. 컴시간 원본은 단추로 바꿔 볼 수 있다. / v2.13.0 시간표에 «학년 시간표» 탭 — 학년을 고르고 요일×교시 칸을 누르면 그 시간에 그 학년 모든 반의 과목·교과교사가 나온다(학급 시간표와 같은 자료). / v2.12.0 폰에 든 체육수업진도 앱을 1.65.2 → 1.67.0 으로 갈아 끼움(순연·보강 계산이 웹 진도앱과 같아진다). 허브도 calbak 묶음을 받는다. / v2.11.1 보강(진도앱 kind 'cover')을 «대여 · 내어줌» 으로 잘못 보이던 것 — «보강 + 어느 반» 으로 따로 보인다. / v2.11.0 폰에서 학년 일정(학년부 일지) 넣기·지우기 — 허브 op 'plan'(cats·add·del). 지우기는 두 번 눌러야 하고, 시트와 개수가 다르면 건드리지 않는다. / v2.10.2 PC 에서 붙인 증빙이 폰에 늦게 보이던 것 — 목록을 1분만 묵혀 두고 허브도 폴더를 새로 읽게 했다. / v2.10.1 증빙을 받다 늦어지면 한 번 더 해 보고, 그래도 안 되면 «못 받았습니다 — 다시 눌러 보세요» 를 보인다(«받는 중…» 에서 멈추던 것 고침). 기다리는 시간도 넉넉히(미리보기 90초·올리기 3분). / v2.10.0 줄을 못 찾은 증빙을 폰에서 «줄에 붙이기»(허브가 제 이름으로 다시 저장, 큰 것은 줄여서, 옛것은 휴지통). / v2.9.0 폰에서 증빙 올리기(＋ 증빙 — 사진 고르기·찍기·붙여넣기, 1600px JPEG 으로 줄여 보냄) · 큰 사진은 미리보기로 바로 보기 · 줄을 못 찾은 증빙 모아 보기. / v2.8.0 폴드6 — 펼치면 출결이 두 칸(왼쪽 오늘·적기 / 오른쪽 달 목록), 접으면 한 줄. 접었다 펴면 스스로 다시 짜인다. / v2.7.0 출결 증빙서류를 폰에서 바로 봄 — 줄의 «증빙» 단추 → 사진 보기(확대·여러 장 넘기기). PC 가 드라이브에 올린 것을 허브가 대신 읽어 온다. / v2.6.0 홈 오늘 수업에서 수업 메모 쓰기·고치기(웹앱 saveMemo — 진도앱 날짜별 조회와 같은 자료, 저장시각 표시, 저장 실패는 알림). / v2.5.1 홈 오늘 수업에 수업 대여(빌려옴·내어줌)·학사일정 활동 시간(영어듣기평가)·수업이동·밀림 표시. / v2.5.0 홈 — 오늘 수업에 차시 내용·메모(체육수업진도 웹앱을 숨겨서 미리 띄워 계산), 오늘 급식 전체 메뉴+여중/여고 단추, 오늘 출결 먼저(없으면 «모두 왔어요», 출결 화면 맨 위에도). / v2.4.0 반응형 — 폴드 접음(좁은 겉화면)·펼침(넓은 안화면)·태블릿: 640px 이상이면 메뉴가 왼쪽 세로 띠, 홈 카드 두 줄(800px~), 더보기는 가운데 창, 시간표 웹앱도 띠 옆에 맞춰 자리잡고 접었다 펴면 바로 다시 맞춤. / v2.3.0 시간표(체육수업진도)에 확대·축소 + 가로 맞춤·세로 맞춤 단추. / v2.2.0 «시간표» 가 체육수업진도 웹앱(v1.65.2) 그대로 — 시간표·계획 / 날짜별 조회 / 진도표, 편집·저장까지(허브 경유, jd/ 폴더). 컴시간 «내 시간표»·«학급 시간표» 는 같은 화면의 다른 칸으로. / v2.1.0 학사일정에 학년부 일지(학년 일정) 함께 보기 — 학년 켜기·구분 고르기, 홈 «앞으로 7일» 에도. / v2.0.0 «전부» — 혜원이지 모바일의 화면(시간표·급식·학사일정·주간업무·출결·문자 문구·바로가기)을 지비스 전용으로 옮기고 홈을 새로 짬.
+   지비스 모바일 | @version 2.18.0
+   수정요약: v2.18.0 체육수업진도 «차시 목록» — 폰에서 차시·수행평가·종목을 넣고 고친다(유형·주제·내용, 위로/아래로, 지우기는 두 번 눌러서). 폰 안 체육수업진도를 1.67.0 → 1.77.0 으로(웹앱과 같은 계산, 전환기보드 가져오기 포함). / v2.17.0 학급 시간표의 바뀐 수업(교체·보강)을 칸 테두리·배경(주황)으로 구분 — 바뀐 과목·교사를 맞바꿈 아이콘과 함께 한 줄로 강조, 원래 과목·교사는 아래 흐린 회색(다리 1.15.1 이 이번 주 실제 시간표를 줌). / v2.16.1 다크 테마에서 입력칸(문자 문구 작성 등) 글자가 검정이라 안 보이던 것 — 입력칸 글자색을 테마색으로, 안내 글자(placeholder)도 보이게. / v2.16.0 넓은 화면(폴드를 펼침·태블릿)의 왼쪽 사이드바에 «더보기» 에 숨어 있던 화면도 모두 펼쳐 보임(좁은 화면은 전처럼 4칸 + 더보기). / v2.15.2 학년 일정 고치기에서 날짜도 바꾼다(날짜 칸 — 바꾸면 그 날짜로 옮기고 확인 체크도 함께). / v2.15.1 학년 일정(학년부 일지) 한 건의 구분·내용·세부사항 고치기 — 일정 줄의 ✏️(허브 1.8.1 · 일지 다리 1.9.0). / v2.15.0 학생기록 — 폰에서 PC 지비스와 같은 학생기록(구글 시트)을 보고·적고·고치고·지운다(반 칩·카테고리 칩·학생 칩, 지우기는 확인 상자, 폴드 펼침은 왼쪽 명단·오른쪽 기록). 허브 op 'rec'(허브 1.8.0). / v2.14.1 학년 시간표 — 처음 열 때 고른 칸이 모든 반 빈 시간이면 가까운 수업 시간으로. / v2.14.0 «체육수업진도» 를 폰 모양으로 — 이번 주·다음 주를 넘겨 가며 표로 보고, 칸을 누르면 수업 메모·차시 배정을 폰에서 바로 한다(계산·저장은 숨겨 둔 진도 웹앱이 한다. 원본 화면은 단추로). «내 시간표» 의 이번 주를 홈의 «오늘 수업» 과 같은 자료(체육수업진도 — 수업이동·보강·대여·학사일정 반영)로 그린다. 컴시간 원본은 단추로 바꿔 볼 수 있다. / v2.13.0 시간표에 «학년 시간표» 탭 — 학년을 고르고 요일×교시 칸을 누르면 그 시간에 그 학년 모든 반의 과목·교과교사가 나온다(학급 시간표와 같은 자료). / v2.12.0 폰에 든 체육수업진도 앱을 1.65.2 → 1.67.0 으로 갈아 끼움(순연·보강 계산이 웹 진도앱과 같아진다). 허브도 calbak 묶음을 받는다. / v2.11.1 보강(진도앱 kind 'cover')을 «대여 · 내어줌» 으로 잘못 보이던 것 — «보강 + 어느 반» 으로 따로 보인다. / v2.11.0 폰에서 학년 일정(학년부 일지) 넣기·지우기 — 허브 op 'plan'(cats·add·del). 지우기는 두 번 눌러야 하고, 시트와 개수가 다르면 건드리지 않는다. / v2.10.2 PC 에서 붙인 증빙이 폰에 늦게 보이던 것 — 목록을 1분만 묵혀 두고 허브도 폴더를 새로 읽게 했다. / v2.10.1 증빙을 받다 늦어지면 한 번 더 해 보고, 그래도 안 되면 «못 받았습니다 — 다시 눌러 보세요» 를 보인다(«받는 중…» 에서 멈추던 것 고침). 기다리는 시간도 넉넉히(미리보기 90초·올리기 3분). / v2.10.0 줄을 못 찾은 증빙을 폰에서 «줄에 붙이기»(허브가 제 이름으로 다시 저장, 큰 것은 줄여서, 옛것은 휴지통). / v2.9.0 폰에서 증빙 올리기(＋ 증빙 — 사진 고르기·찍기·붙여넣기, 1600px JPEG 으로 줄여 보냄) · 큰 사진은 미리보기로 바로 보기 · 줄을 못 찾은 증빙 모아 보기. / v2.8.0 폴드6 — 펼치면 출결이 두 칸(왼쪽 오늘·적기 / 오른쪽 달 목록), 접으면 한 줄. 접었다 펴면 스스로 다시 짜인다. / v2.7.0 출결 증빙서류를 폰에서 바로 봄 — 줄의 «증빙» 단추 → 사진 보기(확대·여러 장 넘기기). PC 가 드라이브에 올린 것을 허브가 대신 읽어 온다. / v2.6.0 홈 오늘 수업에서 수업 메모 쓰기·고치기(웹앱 saveMemo — 진도앱 날짜별 조회와 같은 자료, 저장시각 표시, 저장 실패는 알림). / v2.5.1 홈 오늘 수업에 수업 대여(빌려옴·내어줌)·학사일정 활동 시간(영어듣기평가)·수업이동·밀림 표시. / v2.5.0 홈 — 오늘 수업에 차시 내용·메모(체육수업진도 웹앱을 숨겨서 미리 띄워 계산), 오늘 급식 전체 메뉴+여중/여고 단추, 오늘 출결 먼저(없으면 «모두 왔어요», 출결 화면 맨 위에도). / v2.4.0 반응형 — 폴드 접음(좁은 겉화면)·펼침(넓은 안화면)·태블릿: 640px 이상이면 메뉴가 왼쪽 세로 띠, 홈 카드 두 줄(800px~), 더보기는 가운데 창, 시간표 웹앱도 띠 옆에 맞춰 자리잡고 접었다 펴면 바로 다시 맞춤. / v2.3.0 시간표(체육수업진도)에 확대·축소 + 가로 맞춤·세로 맞춤 단추. / v2.2.0 «시간표» 가 체육수업진도 웹앱(v1.65.2) 그대로 — 시간표·계획 / 날짜별 조회 / 진도표, 편집·저장까지(허브 경유, jd/ 폴더). 컴시간 «내 시간표»·«학급 시간표» 는 같은 화면의 다른 칸으로. / v2.1.0 학사일정에 학년부 일지(학년 일정) 함께 보기 — 학년 켜기·구분 고르기, 홈 «앞으로 7일» 에도. / v2.0.0 «전부» — 혜원이지 모바일의 화면(시간표·급식·학사일정·주간업무·출결·문자 문구·바로가기)을 지비스 전용으로 옮기고 홈을 새로 짬.
      ★ 허브 연결(기기 열쇠) · 앱 잠금(지문/숫자 6자리) · 하단 메뉴 4칸+더보기(끌어서 바꾸기) · 이 폰에서 모두 지우기.
      ★ 바깥 글꼴 요청 없음 · 칩·버튼 44px · 선 아이콘만 · 점검(2026-10-13) 지적 사항 반영.
    v1.0.1 점검 반영(어두운 화면 정답·오답 글자 대비, 짝맞추기 단추 이름). v1.0.0 첫 판 — 이름 외우기.
@@ -890,7 +932,7 @@ table.tt.pg td.pgt{padding:2px;height:50px}
    ★ 드롭다운(select)·alert/confirm/prompt 는 쓰지 않는다 — 칩·단추·화면 안 안내로 한다.
    ══════════════════════════════════════════════════════════ */
 
-var VERSION = '2.17.0';
+var VERSION = '2.18.0';
 /* 학급 시간표 «바뀐 수업» 아이콘(맞바꿈 화살표, 32px PNG — 선생님이 고른 그림) */
 var CHG_ICON = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAFZUlEQVR42sVXXWxUVRD+Zs7Zbrfd3dpCaaFUxSAmJIYS/gqtrD6IthhCIoutCZiUCD74IEaSqsi6kQAtGkx80SCEqImU9clAeSK6/eNHVuCFKIFIEKGFFrpd6HbZe8/4sFv6D6UoTDK5Nze55/vONzNn5gD/mwUYAOMxGREBRMDjIEHp53QAU1Mk/OoRYQeYACCj6NnC6rruguqdXUB+OQGAz6dH+0NPDMiv4LtGIz67jqtVHr8VOnhm9vTSZTnFpSVos5ONHQd2VVJTuEV8Po1w2Hr4+KZ1Hs0ZgHY//8KcHS1m5TFJVB4RKayq7wHyy4lGKqEnEF8RTF+A/GlPw7YBkQElFLMQ2+ZWdC7EkElCwzZm3vpNngjQ2L5/5wglaPyq+xVCIZtnvFozY8XaPZNmzYZJmrupPkQfKwlv8TPIysuDnTRgzQYMjnyzM9beUL+cqLNZlqZI6PHj+xEKhZA9Y9aa2a9XQ2cgYVtjKkgmATYWQMwwtjCDzLwNmzwR4FB7Q/1yCoebBQEeN4HZfr8AADsdlpUwsPpYwxg1noOAiIaQOAm7sePnfS9JPBh54ENCDIiIQZza3Vg+PDT9JAhIzl1X686cU7aZANH3TbpAKsnOhkKUWkhkwvVjDJRTSfRqB+x47NL9qoBAJAiSAMBPnBKLWDEIBhZExJaxQ8A0WAWxDTI8yor+cz0j8tXHbckzoS0IjJ0DTERGRDzO0vXf6UyH83bkyBrE/uhKdHf32hbY5QWLrcYsVrsPMFbqPQXOVvTKdX1i10etvcf2VBJRjwSDRKOCMxsxxuNa8FZj2eYvy7suXMCp2qoVcuf8QSpYtDB34ct7c4qfKjJJmwZKmQQQELNIvNdRvHR5Vt7MmUj2WnB6dRq8trX36N5KYu4RYxiAGQ0cADyu0ppm34/t4j8t8bk7j1kqd8ErTATiu5yfGOaTAUxNPb1vztneLCuaxVrRJMkXD1yTrMU1LQA8qfUDd5OfhzSS/p0vqjm8aOP28pyiAisRg8NYSWXfPJtnRCaJkUIAeWn2g72TmK4yUafKfa6LtcN2epCMXuno33kFMcfEfMJA0Aw/ipn4swHw97eX5RRNsRI9lnZkabjzC1C8dutuysxKwhga3HZFRJRDSfTy31dunvhlnbnWepxu33CS0urmpag68UVta/y3faOC9y9CRCQi4nGVrmtctHFbeU7RFOtOzNakFCAAa0BlAhgj50kB8R6gKfj2oXjbt6/BPWuye/6y761EItF3dPcaIoqJbBkBnlIgECAJBr1Zi2sOLXxvW9kQ8DRFYwnsmLlHySlbabAzJy8rDoB6z3fe+vVcRX9vEBEaDTyVA8GgcZS88em8d7eV5UyfcmcI+KAGQ6xoLIcCQcDG2AYAVu3frxAQRkA43S3HJK8BQLmyn3TnF8BOgMD8sKNCqm+sJjOeP1gA6jvTtPXUnroeEBysyMjw01YEYsw9HBAx6eUezJgQIOo9f6q9oa7i5Nf1PWDwEBICkCY43GwcbrZH80wvLO1kiNX3wCOeBoJGfD5NTeG29oYdFRHQ4XnvbPIyyBjLsHIw4jduIHr5LybtwGjqKAerznNncfvinz8AQHD1anrQERpIkbBEcpcUVn14eP6GTV6TNEa7GJdaW/h0cH0dsnN+B4wCzKD4kgBM6O64COvi8f6xbWI55PPpVBrlLimsqo9WHhFZeVQSJXWtRrtLfHyPYZSGb2j8IRhk4bB1Nxz7t1dEbPvwkg9qvdqVDcvuy/P5fDrscinE4/aIlcJTBAjZ/839YrAS1Z93FlbXR5ExbRYN3PkehflVulkXpq9ZE5L4YY0Hz5aP66bL/6fs/wLNg4T9objaQAAAAABJRU5ErkJggg==';
 /* ── 테마 — auto · light · dark. 고른 것은 이 폰에만 기억한다 ── */
@@ -2117,7 +2159,7 @@ function mwWire() {
      주 넘기기 w.gotoWeek(off) · 표 w.widgetWeekData() · 수업 w.lessonsOfDay(요일) · 메모 w.google.script.run.saveMemo(...)
      배정 w.openAssignWith(칸) → w.saveAssign(n) / saveEvalAssign(id) / dropAssign(하나) / clearAssign()
    사진·영상 올리기, 수업 이동, 학사일정 고치기는 «웹앱 원본 보기» 로 한다. */
-var PG = { off: 0, busy: false, work: false, err: '', sel: null, recs: {}, memo: {}, stamp: {}, asUnit: '', multi: false, ask: null, open: '', items: [], poll: 0, tries: 0, resetting: false };
+var PG = { sub: LS.get('pgsub', 'wk') === 'ls' ? 'ls' : 'wk', off: 0, busy: false, work: false, err: '', sel: null, recs: {}, memo: {}, stamp: {}, asUnit: '', multi: false, ask: null, open: '', items: [], poll: 0, tries: 0, resetting: false };
 
 function pgW() {
   var w = jdWin();
@@ -2343,19 +2385,25 @@ function pgNav(wkd) {
     + '<button type="button" class="chip' + (PG.off === 0 ? ' on' : '') + '" data-pgwk="0">이번 주</button>'
     + '<button type="button" class="chip' + (PG.off === 1 ? ' on' : '') + '" data-pgwk="1">다음 주</button></div>';
 }
+/* 이번 주 표 | 차시 목록 (v2.18.0) */
+function pgSubBtns() {
+  return '<div class="chips pgsub"><button type="button" class="chip' + (PG.sub === 'wk' ? ' on' : '') + '" data-pgsub="wk">이번 주 표</button>'
+    + '<button type="button" class="chip' + (PG.sub === 'ls' ? ' on' : '') + '" data-pgsub="ls">차시 목록</button></div>';
+}
 function pgRawBtn() { return '<button type="button" class="btn ghost sm" data-pgraw="1">웹앱 원본 보기 <small>(사진·영상·수업 이동·학사일정)</small></button>'; }
 
 function viewPg() {
   var w = pgW();
   if (!w || !pgReady(w)) { pgPoll(); return '<div class="spin">체육수업진도를 불러오는 중…</div>' + pgRawBtn(); }
   pgInstall(w);
+  if (PG.sub === 'ls') return pgSubBtns() + viewPgl(w) + pgRawBtn();   // v2.18.0 차시 목록(pgl.js)
   if (PG.busy) return '<div class="card">' + pgNav(null) + '</div><div class="spin">불러오는 중…</div>';
   var wkd = w.widgetWeekData();
   pgLoadRecs(w, wkd.days);
   if (!PG.sel || !wkd.days.some(function (x) { return x.dow === PG.sel.dy; })) PG.sel = pgFirstSel(wkd.days);
   var maxP = 1;
   wkd.days.forEach(function (d) { (d.cells || []).forEach(function (c) { if (c && (c.lesson || c.movedOut || c.blocked)) maxP = Math.max(maxP, c.p); }); });
-  var h = '<div class="pgw"><div class="pgg"><div class="card">' + pgNav(wkd) + '</div>';
+  var h = pgSubBtns() + '<div class="pgw"><div class="pgg"><div class="card">' + pgNav(wkd) + '</div>';
   h += '<div class="card"><h2>내 수업 <small>칸을 누르면 아래에서 메모·차시 배정</small></h2><div class="tt-wrap"><table class="tt cl mw pg"><thead><tr><th>교시</th>';
   wkd.days.forEach(function (d) { h += '<th' + (d.today ? ' class="today"' : '') + '>' + esc(d.dow) + '<br><u>' + esc(d.md) + '</u></th>'; });
   h += '</tr></thead><tbody>';
@@ -2424,6 +2472,191 @@ function pgSaveMemo(i) {
     }).saveMemo(x.d.date, x.it.period, x.it.gr, x.it.cls, x.it.unit || '', n, txt);
   } catch (e) { PG.stamp[x.key] = '⚠️ 저장하지 못했습니다'; if (st) st.textContent = PG.stamp[x.key]; }
 }
+/* ══ 체육수업진도 › 차시 목록 — 폰에서 차시·수행평가·종목 넣기·고치기 (v2.18.0) ═══════════════
+   ★ PC 웹앱 «① 차시별 수업진도» 와 같은 일을 폰 모양으로: 학년·종목 칩 → 차시 줄 → 누르면 그 자리에서 펼쳐 고친다.
+   ★ 저장은 숨겨 둔 진도 웹앱의 같은 함수(updateLesson · addLesson · moveLesson · deleteLesson ·
+     addEval · updateEval · moveEval · deleteEval · addUnit)를 부른다 — 허브를 거쳐 PC 웹앱·지비스와 같은 자료에 들어간다.
+   ★ 끝나면 getBootstrapData 로 학년·종목 목록(STATE.grades)을 새로 받고, refreshPlanThen 으로 표(배치)도 다시 계산한다.
+   ★ 지우기는 «한 번 더 눌러야» 지운다(브라우저 확인창 없이). */
+var PGL = { g: LS.get('pglg', ''), u: LS.get('pglu', ''), open: '', draft: null, stamp: {}, arm: '', work: false, err: '', addU: false, newU: '' };
+var PGL_TYPES = ['수업', '수행평가', '시험', '행사'];
+
+function pglG(w) { try { return w.STATE.grades || {}; } catch (e) { return {}; } }
+function pglUnit(w) {
+  var G = pglG(w), gs = Object.keys(G).sort();
+  if (!G[PGL.g]) { var has = gs.filter(function (g) { return (G[g].units || []).length; }); PGL.g = has[has.length - 1] || gs[gs.length - 1] || ''; }   // 처음엔 종목이 있는 가장 높은 학년
+  var us = (G[PGL.g] && G[PGL.g].units) || [];
+  var u = us.filter(function (x) { return x.name === PGL.u; })[0] || us[0] || null;
+  PGL.u = u ? u.name : '';
+  return u;
+}
+function pglItem(u, key) {
+  if (!u || !key) return null;
+  if (key.charAt(0) === 'l') return (u.lessons || []).filter(function (l) { return 'l' + l.n === key; })[0] || null;
+  return (u.evals || []).filter(function (e) { return 'e' + e.id === key; })[0] || null;
+}
+
+/* 펼친 줄의 고치기 칸 */
+function pglEditor(key, it, isEval, first, last) {
+  var d = PGL.draft || {};
+  var h = '<div class="pgle">';
+  if (!isEval) {
+    h += '<label class="pglk">유형</label><div class="chips">' + PGL_TYPES.map(function (t) {
+      return '<button type="button" class="chip' + (d.type === t ? ' on' : '') + '" data-pglt="' + t + '">' + t + '</button>';
+    }).join('') + '</div>';
+  }
+  h += '<label class="pglk" for="pglTopic">' + (isEval ? '이름' : '주제') + '</label>'
+    + '<input id="pglTopic" class="pgli" type="text" autocomplete="off" value="' + esc(d.topic || '') + '">'
+    + '<label class="pglk" for="pglDetail">내용</label>'
+    + '<textarea id="pglDetail" class="pgli" rows="3">' + esc(d.detail || '') + '</textarea>'
+    + '<div class="pglbtns">'
+    + '<button type="button" class="btn ghost sm" data-pglmv="-1"' + (first ? ' disabled' : '') + '>▲ 위로</button>'
+    + '<button type="button" class="btn ghost sm" data-pglmv="1"' + (last ? ' disabled' : '') + '>▼ 아래로</button>'
+    + '<button type="button" class="btn ghost sm pgldel' + (PGL.arm === key ? ' arm' : '') + '" data-pgldel="1">'
+    + (PGL.arm === key ? '한 번 더 누르면 지웁니다' : '지우기') + '</button></div>'
+    + '<button type="button" class="btn pglsave" data-pglsave="1"' + (PGL.work ? ' disabled' : '') + '>' + (PGL.work ? '저장 중…' : '저장') + '</button>';
+  if (PGL.stamp[key]) h += '<div class="pglst">' + esc(PGL.stamp[key]) + '</div>';
+  if (PGL.arm === key) h += '<div class="pglwarn">' + (isEval ? '잡아 둔 날짜도 함께 없어집니다' : '뒤 차시 번호가 하나씩 당겨지고, 적용 체크·배정도 함께 정리됩니다') + '</div>';
+  return h + '</div>';
+}
+function pglRow(key, n, tag, isEval, title, detail, first, last, it) {
+  var open = PGL.open === key;
+  return '<div class="pglr' + (open ? ' open' : '') + '"><button type="button" class="pglrow" data-pglo="' + esc(key) + '" aria-expanded="' + open + '">'
+    + (isEval ? '' : '<span class="pgln">' + esc(n) + '</span>')
+    + '<span class="pgltg' + (isEval || tag === '수행평가' ? ' ev' : '') + '">' + esc(isEval ? '수행' : tag) + '</span>'
+    + '<span class="pglx"><b>' + esc(title || '(제목 없음)') + '</b><span' + (detail ? '' : ' class="e"') + '>' + esc(detail || '내용 비어 있음') + '</span></span>'
+    + '<span class="pglc">' + (open ? '⌃' : '›') + '</span></button>'
+    + (open ? pglEditor(key, it, isEval, first, last) : '') + '</div>';
+}
+
+function viewPgl(w) {
+  var G = pglG(w), u = pglUnit(w), gs = Object.keys(G).sort();
+  var us = (G[PGL.g] && G[PGL.g].units) || [];
+  var h = '<div class="card pglc1"><div class="pglk">학년</div><div class="chips">' + gs.map(function (g) {
+    return '<button type="button" class="chip' + (g === PGL.g ? ' on' : '') + '" data-pglg="' + esc(g) + '">' + esc(g) + '</button>';
+  }).join('') + '</div><div class="pglk">종목</div><div class="chips pglus">' + us.map(function (x) {
+    return '<button type="button" class="chip' + (u && x.name === u.name ? ' on' : '') + '" data-pglu="' + esc(x.name) + '">' + esc(x.name)
+      + '<small>' + (x.lessons || []).length + '</small></button>';
+  }).join('') + '<button type="button" class="chip pgladd" data-pgladdu="1">+ 종목</button></div>';
+  if (PGL.addU) {
+    h += '<div class="pglnew"><input id="pglNewU" class="pgli" type="text" autocomplete="off" placeholder="새 종목 이름 (예: 배구)" value="' + esc(PGL.newU) + '">'
+      + '<button type="button" class="btn sm" data-pglmku="1"' + (PGL.work ? ' disabled' : '') + '>추가</button></div>';
+  }
+  h += '</div>';
+  if (PGL.err) h += '<div class="pgnote ev">' + esc(PGL.err) + '</div>';
+  if (!u) return h + '<div class="card"><div class="muted">' + esc(PGL.g) + ' 에 종목이 없습니다 — «+ 종목» 으로 만들어 주세요</div></div>';
+
+  var ls = (u.lessons || []).slice().sort(function (a, b) { return Number(a.n) - Number(b.n); });
+  h += '<div class="card pglcard"><h2>' + esc(u.name) + ' <small>' + esc(PGL.g) + ' · ' + ls.length + '차시</small></h2><div class="pgll">';
+  ls.forEach(function (l, i) { h += pglRow('l' + l.n, l.n, l.type || '수업', false, l.topic, l.detail, i === 0, i === ls.length - 1, l); });
+  h += '</div><button type="button" class="pgladdrow" data-pgladdl="1"' + (PGL.work ? ' disabled' : '') + '>+ 차시 추가</button></div>';
+
+  var ev = u.evals || [];
+  h += '<div class="card pglcard"><h2 class="pglevh">수행평가 <small>차시 번호 없음 · 시간표 칸에서 날짜를 잡은 날에만 나옵니다</small></h2>';
+  if (ev.length) {
+    h += '<div class="pgll">';
+    ev.forEach(function (e, i) { h += pglRow('e' + e.id, '', '', true, e.topic, e.detail, i === 0, i === ev.length - 1, e); });
+    h += '</div>';
+  }
+  h += '<button type="button" class="pgladdrow" data-pgladde="1"' + (PGL.work ? ' disabled' : '') + '>+ 수행평가 추가</button></div>';
+  return h;
+}
+
+/* ── 저장 — 진도 웹앱 함수를 부르고, 끝나면 목록을 새로 받는다 ── */
+function pglReload(w, cb) {
+  try {
+    w.google.script.run.withSuccessHandler(function (d) {
+      try { if (d && d.grades) w.STATE.grades = d.grades; } catch (e) { /* */ }
+      try { w.refreshPlanThen(function () { }); } catch (e) { /* */ }
+      cb();
+    }).withFailureHandler(function () { cb(); }).getBootstrapData();
+  } catch (e) { cb(); }
+}
+function pglRun(name, args, ok) {
+  var w = pgW(); if (!w) return;
+  PGL.work = true; PGL.err = ''; draw();
+  var t = setTimeout(function () { if (PGL.work) { PGL.work = false; PGL.err = '답이 늦습니다 — 잠시 뒤 다시 확인해 보세요'; if (pglOn()) draw(); } }, 30000);
+  try {
+    var r = w.google.script.run.withSuccessHandler(function (res) {
+      if (res && res.ok === false) { clearTimeout(t); PGL.work = false; PGL.err = res.msg || '저장하지 못했습니다'; if (pglOn()) draw(); return; }
+      pglReload(w, function () { clearTimeout(t); PGL.work = false; if (ok) ok(res || {}); if (pglOn()) draw(); });
+    }).withFailureHandler(function (e) {
+      clearTimeout(t); PGL.work = false; PGL.err = '저장하지 못했습니다 — ' + ((e && e.message) || e || '잠시 뒤 다시 해 보세요'); if (pglOn()) draw();
+    });
+    r[name].apply(r, args);
+  } catch (e) { clearTimeout(t); PGL.work = false; PGL.err = '저장하지 못했습니다'; draw(); }
+}
+function pglOn() { return pgOn() && PG.sub === 'ls'; }
+function pglOpen(w, key) {
+  var u = pglUnit(w), it = pglItem(u, key);
+  PGL.arm = '';
+  if (!it || PGL.open === key) { PGL.open = ''; PGL.draft = null; return; }
+  PGL.open = key;
+  PGL.draft = { topic: it.topic || '', detail: it.detail || '', type: PGL_TYPES.indexOf(it.type) >= 0 ? it.type : '수업' };
+}
+function pglSave() {
+  var w = pgW(), u = w && pglUnit(w), key = PGL.open, d = PGL.draft; if (!u || !key || !d) return;
+  var topic = String(d.topic || '').trim(), detail = String(d.detail || '').trim();
+  if (!topic) { PGL.err = (key.charAt(0) === 'e' ? '이름' : '주제') + '을 적어 주세요'; draw(); return; }
+  var done = function (r) { PGL.stamp[key] = '✅ 저장됨 · ' + (r.savedAt || ''); };
+  if (key.charAt(0) === 'l') pglRun('updateLesson', [PGL.g, u.name, Number(key.slice(1)), topic, detail, d.type || '수업'], done);
+  else pglRun('updateEval', [PGL.g, u.name, key.slice(1), topic, detail], done);
+}
+function pglMove(dir) {
+  var w = pgW(), u = w && pglUnit(w), key = PGL.open; if (!u || !key) return;
+  if (key.charAt(0) === 'l') {
+    pglRun('moveLesson', [PGL.g, u.name, Number(key.slice(1)), dir], function (r) {
+      var to = 'l' + (r.n || (Number(key.slice(1)) + dir));          // 내용이 옮겨 간 자리를 계속 펼쳐 둔다
+      PGL.open = ''; pglOpen(w, to); PGL.stamp[to] = '↕️ 옮김 · ' + (r.savedAt || '');
+    });
+  } else {
+    pglRun('moveEval', [PGL.g, u.name, key.slice(1), dir], function (r) { PGL.stamp[key] = '↕️ 옮김 · ' + (r.savedAt || ''); });
+  }
+}
+function pglDel() {
+  var w = pgW(), u = w && pglUnit(w), key = PGL.open; if (!u || !key) return;
+  if (PGL.arm !== key) { PGL.arm = key; draw(); return; }
+  PGL.arm = '';
+  var after = function () { PGL.open = ''; PGL.draft = null; };
+  if (key.charAt(0) === 'l') pglRun('deleteLesson', [PGL.g, u.name, Number(key.slice(1))], after);
+  else pglRun('deleteEval', [PGL.g, u.name, key.slice(1)], after);
+}
+function pglWire() {
+  if (!pglOn()) return;
+  var q = function (s, f) { APP.querySelectorAll(s).forEach(f); };
+  var w = pgW();
+  q('[data-pglg]', function (b) { b.addEventListener('click', function () { PGL.g = b.dataset.pglg; PGL.u = ''; PGL.open = ''; PGL.draft = null; PGL.arm = ''; LS.set('pglg', PGL.g); draw(); }); });
+  q('[data-pglu]', function (b) { b.addEventListener('click', function () { PGL.u = b.dataset.pglu; PGL.open = ''; PGL.draft = null; PGL.arm = ''; LS.set('pglu', PGL.u); draw(); }); });
+  q('[data-pglo]', function (b) { b.addEventListener('click', function () { if (w) pglOpen(w, b.dataset.pglo); PGL.err = ''; draw(); }); });
+  q('[data-pglt]', function (b) { b.addEventListener('click', function () { if (PGL.draft) PGL.draft.type = b.dataset.pglt; draw(); }); });
+  var tp = document.getElementById('pglTopic'), dt = document.getElementById('pglDetail');
+  if (tp) tp.addEventListener('input', function () { if (PGL.draft) PGL.draft.topic = tp.value; if (PGL.open) delete PGL.stamp[PGL.open]; });
+  if (dt) dt.addEventListener('input', function () { if (PGL.draft) PGL.draft.detail = dt.value; if (PGL.open) delete PGL.stamp[PGL.open]; });
+  if (tp) tp.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); pglSave(); } });
+  q('[data-pglsave]', function (b) { b.addEventListener('click', pglSave); });
+  q('[data-pglmv]', function (b) { b.addEventListener('click', function () { pglMove(Number(b.dataset.pglmv)); }); });
+  q('[data-pgldel]', function (b) { b.addEventListener('click', pglDel); });
+  q('[data-pgladdl]', function (b) { b.addEventListener('click', function () {
+    var u = w && pglUnit(w); if (!u) return;
+    pglRun('addLesson', [PGL.g, u.name], function (r) { if (r.n) { PGL.open = ''; pglOpen(w, 'l' + r.n); } });
+  }); });
+  q('[data-pgladde]', function (b) { b.addEventListener('click', function () {
+    var u = w && pglUnit(w); if (!u) return;
+    pglRun('addEval', [PGL.g, u.name, '수행평가'], function (r) { if (r.id) { PGL.open = ''; pglOpen(w, 'e' + r.id); } });
+  }); });
+  q('[data-pgladdu]', function (b) { b.addEventListener('click', function () { PGL.addU = !PGL.addU; draw(); var i = document.getElementById('pglNewU'); if (i) i.focus(); }); });
+  var nu = document.getElementById('pglNewU');
+  var mk = function () {
+    var name = String(PGL.newU || '').trim(); if (!name) { PGL.err = '종목 이름을 적어 주세요'; draw(); return; }
+    pglRun('addUnit', [PGL.g, name], function () { PGL.u = name; LS.set('pglu', name); PGL.addU = false; PGL.newU = ''; PGL.open = ''; });
+  };
+  if (nu) {
+    nu.addEventListener('input', function () { PGL.newU = nu.value; });
+    nu.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); mk(); } });
+  }
+  q('[data-pglmku]', function (b) { b.addEventListener('click', mk); });
+}
+
 function pgWire() {
   var q = function (s, f) { APP.querySelectorAll(s).forEach(f); };
   q('[data-pgwk]', function (b) { b.addEventListener('click', function () { pgGo(Number(b.dataset.pgwk)); }); });
@@ -2444,6 +2677,8 @@ function pgWire() {
   q('[data-pgclear]', function (b) { b.addEventListener('click', function () { pgAssign(Number(b.dataset.pgclear), 'clear'); }); });
   q('[data-pgmulti]', function (b) { b.addEventListener('click', function () { PG.multi = !PG.multi; draw(); }); });
   q('[data-pgask]', function (b) { b.addEventListener('click', function () { var a = PG.ask; PG.ask = null; if (b.dataset.pgask === 'ok' && a && a.fn) a.fn(); else draw(); }); });
+  q('[data-pgsub]', function (b) { b.addEventListener('click', function () { PG.sub = b.dataset.pgsub; LS.set('pgsub', PG.sub); PG.ask = null; PG.err = ''; draw(); }); });
+  pglWire();
   q('[data-pgraw]', function (b) { b.addEventListener('click', function () { TT_MODE = 'jd'; LS.set('ttmode', 'jd'); draw(); }); });
 }
 
@@ -3999,6 +4234,7 @@ function FEEDURL() {
 
 /* ── 업데이트 내역 ── */
 var CHANGES = [
+  { v: '2.18.0', items: ['시간표 › 체육수업진도 › «차시 목록» 에서 차시를 넣고 고칠 수 있어요 — 학년·종목을 고르고 줄을 누르면 유형·주제·내용을 고치고 순서를 바꿉니다', '수행평가·종목도 폰에서 더할 수 있어요. 지우기는 한 번 더 눌러야 지워집니다', 'PC 웹앱·지비스와 같은 자료라 어디서 고쳐도 함께 바뀝니다'] },
   { v: '2.15.2', items: ['학년 일정을 고칠 때 날짜도 바꿀 수 있어요 — 바꾸면 그 날짜로 옮겨집니다'] },
   { v: '2.15.1', items: ['학사일정의 학년 일정(3학년부 시트 등)을 이제 고칠 수 있어요 — 일정 줄의 ✏️ 를 눌러 구분·내용·세부사항을 바꾸고 저장하세요'] },
   { v: '2.15.0', items: ['학생기록이 폰에 들어왔어요 — 더보기 → «학생기록». PC 지비스와 같은 시트라 어느 쪽에서 적어도 서로 보여요', '반(3-1~2-5)·카테고리를 칩으로 골라 기록을 최근순으로 보고, 카드를 누르면 고칠 수 있어요. «＋ 기록 쓰기» 로 새로 적고, 저장하면 저장시각이 보여요', '지우기는 확인을 한 번 거쳐요(내용만 비워지고 시트의 줄은 남아요)', '폴드를 펼치면 왼쪽에 반 명단, 오른쪽에 그 학생의 기록이 나란히 보여요. 학생 기록은 폰에 저장하지 않고, 앱이 잠기면 화면에서도 치워요'] },
